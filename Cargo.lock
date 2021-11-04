@@ -3,6 +3,26 @@
 version = 3
 
 [[package]]
+name = "adafruit-featherwing-oled128x64"
+version = "0.1.0"
+dependencies = [
+ "cortex-m",
+ "cortex-m-rt",
+ "embassy",
+ "embassy-traits",
+ "embedded-graphics",
+ "embedded-hal",
+ "embedded-time",
+ "futures",
+ "nb 1.0.0",
+ "panic-rtt-target",
+ "rp2040-boot2",
+ "rp2040-hal",
+ "rtt-target",
+ "sh1107",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "0.7.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -13,15 +33,15 @@ dependencies = [
 
 [[package]]
 name = "arrayvec"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be4dc07131ffa69b8072d35f5007352af944213cde02545e2103680baed38fcd"
+checksum = "8da52d66c7071e2e3fa2a1e5c6d088fec47b593032b254f5e980de8ea54454d6"
 
 [[package]]
 name = "atomic-polyfill"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "053f1ab4712fe8c55de46932b46ecc774ae7906278ddf7fc2fbaaaa663b84392"
+checksum = "e686d748538a32325b28d6411dd8a939e7ad5128e5d0023cc4fd3573db456042"
 dependencies = [
  "critical-section",
  "riscv-target",
@@ -121,9 +141,9 @@ dependencies = [
 
 [[package]]
 name = "critical-section"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "673b836c1c5a73bd981805236f46dfddbe1092a6a829b22464bd40d7ceefd2f9"
+checksum = "01e191a5a6f6edad9b679777ef6b6c0f2bdd4a333f2ecb8f61c3e28109a03d70"
 dependencies = [
  "bare-metal 1.0.0",
  "cfg-if",
@@ -192,7 +212,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy?rev=a8797f84f69b7668a3f89b6cba3e39bce5649079#a8797f84f69b7668a3f89b6cba3e39bce5649079"
+source = "git+https://github.com/embassy-rs/embassy?rev=3dcf899babff5b735b1f1a5a99a9005ce06f517f#3dcf899babff5b735b1f1a5a99a9005ce06f517f"
 dependencies = [
  "atomic-polyfill",
  "cortex-m",
@@ -208,7 +228,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy?rev=a8797f84f69b7668a3f89b6cba3e39bce5649079#a8797f84f69b7668a3f89b6cba3e39bce5649079"
+source = "git+https://github.com/embassy-rs/embassy?rev=3dcf899babff5b735b1f1a5a99a9005ce06f517f#3dcf899babff5b735b1f1a5a99a9005ce06f517f"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -219,6 +239,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy?rev=3dcf899babff5b735b1f1a5a99a9005ce06f517f#3dcf899babff5b735b1f1a5a99a9005ce06f517f"
 dependencies = [
  "embedded-hal",
 ]
@@ -505,10 +526,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "panic-halt"
-version = "0.2.0"
+name = "panic-rtt-target"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de96540e0ebde571dc55c73d60ef407c653844e6f9a1e2fdbd40c07b9252d812"
+checksum = "0d6ab67bc881453e4c90f958c657c1303670ea87bc1a16e87fd71a40f656dce9"
+dependencies = [
+ "cortex-m",
+ "rtt-target",
+]
 
 [[package]]
 name = "paste"
@@ -660,6 +685,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rtt-target"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "065d6058bb1204f51a562a67209e1817cf714759d5cf845aa45c75fa7b0b9d9b"
+dependencies = [
+ "cortex-m",
+ "ufmt-write",
+]
+
+[[package]]
 name = "rustc_version"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -690,24 +725,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
-name = "sh1107-async"
+name = "sh1107"
 version = "0.1.0"
 dependencies = [
- "cortex-m",
- "cortex-m-rt",
  "either",
- "embassy",
  "embassy-traits",
- "embedded-graphics",
  "embedded-graphics-core",
- "embedded-hal",
- "embedded-time",
- "futures",
  "itertools",
- "nb 1.0.0",
- "panic-halt",
- "rp2040-boot2",
- "rp2040-hal",
 ]
 
 [[package]]
@@ -741,6 +765,12 @@ dependencies = [
  "quote",
  "unicode-xid",
 ]
+
+[[package]]
+name = "ufmt-write"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e87a2ed6b42ec5e28cc3b94c09982969e9227600b2e3dcbc1db927a84c06bd69"
 
 [[package]]
 name = "unicode-xid"

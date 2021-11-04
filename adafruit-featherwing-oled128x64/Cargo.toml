@@ -1,0 +1,30 @@
+[package]
+name = "adafruit-featherwing-oled128x64"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sh1107 = { version = "*", path = "../sh1107" }
+embassy-traits = { git = "https://github.com/embassy-rs/embassy", rev = "3dcf899babff5b735b1f1a5a99a9005ce06f517f" }
+
+[dev-dependencies]
+cortex-m = "0.7.3"
+cortex-m-rt = "0.7"
+
+embedded-graphics = "*"
+embedded-hal = { version = "0.2.5", features = ["unproven"] }
+embedded-time = "0.12.0"
+nb = "*"
+
+rp2040-hal = { git = "https://github.com/rp-rs/rp-hal", features = ["rt", "embassy-traits"] }
+rp2040-boot2 = { git = "https://github.com/rp-rs/rp2040-boot2-rs", branch = "main" }
+
+futures = { version = "*", default-features = false }
+embassy = { git = "https://github.com/embassy-rs/embassy", rev = "3dcf899babff5b735b1f1a5a99a9005ce06f517f" }
+embassy-traits = { git = "https://github.com/embassy-rs/embassy", rev = "3dcf899babff5b735b1f1a5a99a9005ce06f517f" }
+
+panic-rtt-target = { version = "*", features = ["cortex-m"] }
+rtt-target = { version = "*", features = ["cortex-m"] }
+

@@ -1,9 +1,9 @@
 #![no_std]
 use embassy_traits::i2c::I2c;
 use embassy_traits::i2c::{SevenBitAddress, WriteIter};
-use sh1107::Command;
 use sh1107::Direction;
 use sh1107::{AddressMode, Sh1107};
+use sh1107::{Command, DisplayMode};
 
 pub use sh1107::DisplayState;
 
@@ -12,31 +12,43 @@ pub struct Display<T, const ADDRESS: SevenBitAddress>(Sh1107<T, ADDRESS>);
 impl<U, T: WriteIter<Error = U> + I2c<Error = U>, const ADDRESS: SevenBitAddress>
     Display<T, ADDRESS>
 {
-    pub async fn new(i2c_bus: T) -> Result<Self, U> {
+    pub async fn new(i2c_bus: T) -> Result<Self, (T, U)> {
         let mut sh1107 = Sh1107::new(i2c_bus);
 
         use Command::*;
-        const INIT_SEQUENCE: [Command; 11] = [
+        const INIT_SEQUENCE: [Command; 14] = [
             DisplayOnOff(DisplayState::Off),
             SetClkDividerOscFrequency {
-                divider: 1,
-                osc_freq_ratio: 0,
+                divider: 2,        // divide by 2
+                osc_freq_ratio: 0, // +0%
             },
-            SetMultiplexRatio(127),
+            SetMultiplexRatio(128),
+            // rendering alignment
             SetDisplayOffset(96),
+            SetStartLine(0),
+            // display orientation
             SetSegmentReMap(false),
             SetCOMScanDirection(Direction::Normal),
-            SetContrastControl(110), // 110 / 256
+            // electrical configuration
             SetChargePeriods {
                 precharge: Some(2),
                 discharge: 2,
             },
             SetVCOMHDeselectLevel(0x35),
+            // intensity
+            SetContrastControl(110), // 110 / 256
             ForceEntireDisplay(false),
+            // display & addressing mode
+            SetDisplayMode(DisplayMode::BlackOnWhite),
+            Command::SetAddressMode(AddressMode::Page),
             // power up VDD
             DisplayOnOff(DisplayState::On),
         ];
-        sh1107.run(INIT_SEQUENCE).await?;
+        match sh1107.run(INIT_SEQUENCE).await {
+            Ok(_) => {}
+            Err(e) => return Err((sh1107.release(), e)),
+        };
+
         Ok(Display(sh1107))
     }
     pub async fn set_state(&mut self, state: DisplayState) -> Result<(), U> {
@@ -103,6 +115,14 @@ impl<U, T: WriteIter<Error = U> + I2c<Error = U>, const ADDRESS: SevenBitAddress
             self.0.read_from_ram(&mut buf[start..=end]).await?;
         }
         Ok(())
+    }
+
+    pub async fn is_busy(&mut self) -> Result<bool, U> {
+        self.0.is_busy().await
+    }
+
+    pub fn release(self) -> T {
+        self.0.release()
     }
 }
 //sh1107

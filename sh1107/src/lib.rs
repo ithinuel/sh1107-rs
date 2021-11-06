@@ -150,20 +150,43 @@ where
     }
 
     pub async fn run(&mut self, commands: impl IntoIterator<Item = Command>) -> Result<(), U> {
+        //for cmd in commands {
+        //    self.0
+        //        .write_iter(
+        //            ADDRESS,
+        //            core::iter::once(0x00).chain(cmd.encode().into_iter()),
+        //        )
+        //        .await?;
+        //}
+        //Ok(())
+
         self.0
             .write_iter(
                 ADDRESS,
                 Iterator::chain(
-                    core::iter::once(0x80),
-                    Itertools::intersperse(
-                        commands
-                            .into_iter()
-                            .flat_map(|cmd| cmd.encode().into_iter()),
-                        0x80,
-                    ),
+                    core::iter::once(0x00),
+                    commands
+                        .into_iter()
+                        .map(Command::encode)
+                        .flat_map(Either::into_iter),
                 ),
             )
             .await
+
+        //self.0
+        //    .write_iter(
+        //        ADDRESS,
+        //        Iterator::chain(
+        //            core::iter::once(0x80),
+        //            Itertools::intersperse(
+        //                commands
+        //                    .into_iter()
+        //                    .flat_map(|cmd| cmd.encode().into_iter()),
+        //                0x80,
+        //            ),
+        //        ),
+        //    )
+        //    .await
     }
 
     pub async fn write_to_ram(
@@ -220,15 +243,19 @@ where
     //    todo!()
     //}
 
-    pub async fn read_from_ram(&mut self, buf: &mut [u8]) -> Result<(), <T as I2c>::Error> {
+    pub async fn read_from_ram(&mut self, buf: &mut [u8]) -> Result<(), U> {
         self.0.write_read(ADDRESS, &[0x40], buf).await
     }
 
-    pub async fn is_busy(&mut self) -> Result<bool, <T as I2c>::Error> {
+    pub async fn is_busy(&mut self) -> Result<bool, U> {
         let mut res = 0u8;
         self.0
             .write_read(ADDRESS, &[0x80], core::slice::from_mut(&mut res))
             .await?;
         Ok((res & 0x80) != 0)
+    }
+
+    pub fn release(self) -> T {
+        self.0
     }
 }

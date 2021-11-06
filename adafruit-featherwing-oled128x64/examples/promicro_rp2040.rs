@@ -73,58 +73,69 @@ async fn wait_for(timer: &rp2040_hal::timer::Timer, delay: u32) {
 }
 
 #[embassy::task]
-async fn demo(timer: rp2040_hal::timer::Timer, i2c_bus: I2CPeriph) {
-    wait_for(&timer, 1_000_000).await;
-    //wait_for(&timer, 250_000).await;
-
-    let mut display: Display<_, ADDRESS> = Display::new(i2c_bus)
-        .await
-        .expect("Failed to initialize display");
-
-    wait_for(&timer, 100_000).await;
-
-    let start = timer.get_counter_low();
-    display
-        .write_frame_by_page(GLYPHS.iter().cloned())
-        .await
-        .expect("Woops you failed");
-    let diff = timer.get_counter_low().wrapping_sub(start);
-    rtt_target::rprintln!("Full frame took: {}us", diff);
-
-    display.set_state(DisplayState::On).await.expect("Woops");
-
+async fn demo(timer: rp2040_hal::timer::Timer, mut i2c_bus: I2CPeriph) {
     loop {
-        // Scrolling screen
-        //sh1107
-        //    .run([Command::SetStartLine(n)])
-        //    //.run([Command::SetDisplayOffset(n.wrapping_add(96))])
-        //    .await
-        //    .expect("woops");
-        //wait_for(&timer, 5_000).await;
+        wait_for(&timer, 100_000).await;
 
-        // Clear screen
-        //write_frame_by_column(&mut sh1107, core::iter::repeat(0).take(128 * 128))
-        //    .await
-        //    .expect("failed");
+        let start = timer.get_counter_low();
+        let mut display: Display<_, ADDRESS> = Display::new(i2c_bus)
+            .await
+            .ok()
+            .expect("Failed to initialized display");
+        let diff = timer.get_counter_low().wrapping_sub(start);
+        rtt_target::rprintln!("Init took {}us", diff);
 
-        //sh1107
-        //    .run([
-        //        // power up VDD
-        //        DisplayOnOff(State::On),
-        //    ])
-        //    .await
-        //    .expect("failed");
-        //read_frame(&mut sh1107, &mut rx).await.expect("failed");
-        //rtt_target::rprintln!("{:x?}", &rx);
+        let start = timer.get_counter_low();
+        wait_for(&timer, 200_000).await;
+        while display.is_busy().await.unwrap_or(true) {}
+        let diff = timer.get_counter_low().wrapping_sub(start);
+        rtt_target::rprintln!("Init took {}us", diff);
 
-        //write_frame(&mut sh1107).await.expect("failed");
+        let start = timer.get_counter_low();
+        display
+            .write_frame_by_page(GLYPHS.iter().cloned())
+            .await
+            .ok()
+            .expect("failed to write frame data");
+        let diff = timer.get_counter_low().wrapping_sub(start);
+        rtt_target::rprintln!("Init took {}us", diff);
 
-        //sh1107.run([DisplayOnOff(State::Off)]).await;
-        //read_frame(&mut sh1107, &mut rx).await.expect("failed");
-        //rtt_target::rprintln!("{:x?}", &rx);
-
-        //write_frame_by_column(&mut sh1107, core::iter::repeat(0).take(128 * 16)).await;
+        i2c_bus = display.release();
+        wait_for(&timer, 3_000_000).await;
     }
+
+    //loop {
+    // Scrolling screen
+    //sh1107
+    //    .run([Command::SetStartLine(n)])
+    //    //.run([Command::SetDisplayOffset(n.wrapping_add(96))])
+    //    .await
+    //    .expect("woops");
+    //wait_for(&timer, 5_000).await;
+
+    // Clear screen
+    //write_frame_by_column(&mut sh1107, core::iter::repeat(0).take(128 * 128))
+    //    .await
+    //    .expect("failed");
+
+    //sh1107
+    //    .run([
+    //        // power up VDD
+    //        DisplayOnOff(State::On),
+    //    ])
+    //    .await
+    //    .expect("failed");
+    //read_frame(&mut sh1107, &mut rx).await.expect("failed");
+    //rtt_target::rprintln!("{:x?}", &rx);
+
+    //write_frame(&mut sh1107).await.expect("failed");
+
+    //sh1107.run([DisplayOnOff(State::Off)]).await;
+    //read_frame(&mut sh1107, &mut rx).await.expect("failed");
+    //rtt_target::rprintln!("{:x?}", &rx);
+
+    //write_frame_by_column(&mut sh1107, core::iter::repeat(0).take(128 * 16)).await;
+    //}
 
     //sh1107.run([DisplayOnOff(State::On)]).await.expect("failed");
     //wait_for(&timer, 2_000_000).await;

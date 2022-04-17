@@ -1,5 +1,5 @@
 [workspace]
-members = ["adafruit-featherwing-oled128x64", "sh1107"]
+members = ["adafruit-featherwing-oled128x64", "sh1107", "promicro-rp2040-boilerplate"]
 
 [profile.release]
 debug = true
@@ -8,6 +8,7 @@ codegen-units = 1
 panic = "abort"
 opt-level = "s"
 
-[patch.'https://github.com/rp-rs/rp-hal']
-rp2040-hal = { path = "../rp-hal/rp2040-hal" }
-
+[patch.crates-io]
+#rp2040-hal = { path = "../vendor/rp-hal/rp2040-hal" }
+embedded-hal = { git = "https://github.com/rust-embedded/embedded-hal" }
+embedded-hal-async = { git = "https://github.com/rust-embedded/embedded-hal" }

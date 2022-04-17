@@ -1,7 +1,9 @@
 #![no_std]
-use embassy_traits::i2c::I2c;
-use embassy_traits::i2c::{SevenBitAddress, WriteIter};
+
+use embedded_hal_async::i2c::I2c;
+use embedded_hal_async::i2c::SevenBitAddress;
 use sh1107::Direction;
+use sh1107::WriteIter;
 use sh1107::{AddressMode, Sh1107};
 use sh1107::{Command, DisplayMode};
 
@@ -9,10 +11,8 @@ pub use sh1107::DisplayState;
 
 pub struct Display<T, const ADDRESS: SevenBitAddress>(Sh1107<T, ADDRESS>);
 
-impl<U, T: WriteIter<Error = U> + I2c<Error = U>, const ADDRESS: SevenBitAddress>
-    Display<T, ADDRESS>
-{
-    pub async fn new(i2c_bus: T) -> Result<Self, (T, U)> {
+impl<T: WriteIter<SevenBitAddress> + I2c, const ADDRESS: SevenBitAddress> Display<T, ADDRESS> {
+    pub async fn new(i2c_bus: T) -> Result<Self, (T, T::Error)> {
         let mut sh1107 = Sh1107::new(i2c_bus);
 
         use Command::*;
@@ -44,21 +44,30 @@ impl<U, T: WriteIter<Error = U> + I2c<Error = U>, const ADDRESS: SevenBitAddress
             // power up VDD
             DisplayOnOff(DisplayState::On),
         ];
+
         match sh1107.run(INIT_SEQUENCE).await {
             Ok(_) => {}
             Err(e) => return Err((sh1107.release(), e)),
-        };
+        }
 
         Ok(Display(sh1107))
     }
-    pub async fn set_state(&mut self, state: DisplayState) -> Result<(), U> {
+    pub async fn set_state(&mut self, state: DisplayState) -> Result<(), T::Error> {
         self.0.run([Command::DisplayOnOff(state)]).await
+    }
+    pub async fn set_line_and_offset(&mut self, line: u8, offset: u8) -> Result<(), T::Error> {
+        self.0
+            .run([
+                Command::SetStartLine(line),
+                Command::SetDisplayOffset(offset),
+            ])
+            .await
     }
 
     pub async fn write_frame_by_column(
         &mut self,
         mut buf: impl Iterator<Item = u8>,
-    ) -> Result<(), U> {
+    ) -> Result<(), T::Error> {
         self.0
             .run([Command::SetAddressMode(AddressMode::Column)])
             .await?;
@@ -81,7 +90,7 @@ impl<U, T: WriteIter<Error = U> + I2c<Error = U>, const ADDRESS: SevenBitAddress
     pub async fn write_frame_by_page(
         &mut self,
         mut buf: impl Iterator<Item = u8>,
-    ) -> Result<(), U> {
+    ) -> Result<(), T::Error> {
         self.0
             .run([Command::SetAddressMode(AddressMode::Page)])
             .await?;
@@ -101,7 +110,7 @@ impl<U, T: WriteIter<Error = U> + I2c<Error = U>, const ADDRESS: SevenBitAddress
         }
         Ok(())
     }
-    pub async fn read_frame(&mut self, buf: &mut [u8]) -> Result<(), U> {
+    pub async fn read_frame(&mut self, buf: &mut [u8]) -> Result<(), T::Error> {
         self.0
             .run([Command::SetAddressMode(AddressMode::Page)])
             .await?;
@@ -117,7 +126,7 @@ impl<U, T: WriteIter<Error = U> + I2c<Error = U>, const ADDRESS: SevenBitAddress
         Ok(())
     }
 
-    pub async fn is_busy(&mut self) -> Result<bool, U> {
+    pub async fn is_busy(&mut self) -> Result<bool, T::Error> {
         self.0.is_busy().await
     }
 

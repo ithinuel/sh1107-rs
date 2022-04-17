@@ -7,8 +7,9 @@ license = "Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-embassy-traits = { git = "https://github.com/embassy-rs/embassy", rev = "3dcf899babff5b735b1f1a5a99a9005ce06f517f" }
 embedded-graphics-core = "*"
 either = { version = "*", default-features = false }
 itertools = { version = "*", default-features = false }
+embedded-hal-async = "0.0.1"
+futures = { version = "0.3.19", default-features = false, features = ["async-await"] }
 

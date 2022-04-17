@@ -7,24 +7,18 @@ edition = "2021"
 
 [dependencies]
 sh1107 = { version = "*", path = "../sh1107" }
-embassy-traits = { git = "https://github.com/embassy-rs/embassy", rev = "3dcf899babff5b735b1f1a5a99a9005ce06f517f" }
+embedded-hal-async = "0.0.1"
 
 [dev-dependencies]
 cortex-m = "0.7.3"
 cortex-m-rt = "0.7"
 
 embedded-graphics = "*"
-embedded-hal = { version = "0.2.5", features = ["unproven"] }
-embedded-time = "0.12.0"
+embedded-hal = { version = "1.0.0-alpha.7" }
 nb = "*"
 
-rp2040-hal = { git = "https://github.com/rp-rs/rp-hal", features = ["rt", "embassy-traits"] }
-rp2040-boot2 = { git = "https://github.com/rp-rs/rp2040-boot2-rs", branch = "main" }
+promicro-rp2040-boilerplate = { path = "../promicro-rp2040-boilerplate" }
 
-futures = { version = "*", default-features = false }
-embassy = { git = "https://github.com/embassy-rs/embassy", rev = "3dcf899babff5b735b1f1a5a99a9005ce06f517f" }
-embassy-traits = { git = "https://github.com/embassy-rs/embassy", rev = "3dcf899babff5b735b1f1a5a99a9005ce06f517f" }
+nostd_async = { version = "0.6.0", features = ["cortex_m"] }
 
-panic-rtt-target = { version = "*", features = ["cortex-m"] }
 rtt-target = { version = "*", features = ["cortex-m"] }
-

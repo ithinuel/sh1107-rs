@@ -1,14 +1,29 @@
 #![no_std]
+#![feature(generic_associated_types)]
 //! See the [datasheet](https://www.displayfuture.com/Display/datasheet/controller/SH1107.pdf) for
 //! further details
 
 use either::Either;
-use embassy_traits::i2c::{I2c, SevenBitAddress, WriteIter};
 //use embedded_graphics_core::{
 //    draw_target::DrawTarget, geometry::OriginDimensions, pixelcolor::BinaryColor, prelude::Size,
 //    Pixel,
 //};
+use embedded_hal_async::i2c::{AddressMode as I2CAddressMode, ErrorType, I2c, SevenBitAddress};
+use futures::Future;
 use itertools::Itertools;
+
+pub trait WriteIter<A: I2CAddressMode>: ErrorType {
+    /// Future returned by the `write_iter` method.
+    type WriteIterFuture<'a, U>: Future<Output = Result<(), Self::Error>> + 'a
+    where
+        Self: 'a,
+        U: 'a;
+
+    /// Writes bytes obtained form the iterator.
+    fn write_iter<'a, U>(&'a mut self, address: A, bytes: U) -> Self::WriteIterFuture<'a, U>
+    where
+        U: IntoIterator<Item = u8> + 'a;
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DisplayState {
@@ -143,23 +158,13 @@ pub struct Sh1107<T, const ADDRESS: SevenBitAddress>(T);
 
 impl<T, U, const ADDRESS: SevenBitAddress> Sh1107<T, ADDRESS>
 where
-    T: I2c<SevenBitAddress, Error = U> + WriteIter<SevenBitAddress, Error = U>,
+    T: I2c<SevenBitAddress, Error = U> + WriteIter<SevenBitAddress>,
 {
     pub fn new(i2c: T) -> Self {
         Self(i2c)
     }
 
     pub async fn run(&mut self, commands: impl IntoIterator<Item = Command>) -> Result<(), U> {
-        //for cmd in commands {
-        //    self.0
-        //        .write_iter(
-        //            ADDRESS,
-        //            core::iter::once(0x00).chain(cmd.encode().into_iter()),
-        //        )
-        //        .await?;
-        //}
-        //Ok(())
-
         self.0
             .write_iter(
                 ADDRESS,
@@ -172,27 +177,12 @@ where
                 ),
             )
             .await
-
-        //self.0
-        //    .write_iter(
-        //        ADDRESS,
-        //        Iterator::chain(
-        //            core::iter::once(0x80),
-        //            Itertools::intersperse(
-        //                commands
-        //                    .into_iter()
-        //                    .flat_map(|cmd| cmd.encode().into_iter()),
-        //                0x80,
-        //            ),
-        //        ),
-        //    )
-        //    .await
     }
 
     pub async fn write_to_ram(
         &mut self,
         buf: impl IntoIterator<Item = u8>,
-    ) -> Result<(), <T as WriteIter>::Error> {
+    ) -> Result<(), <T as ErrorType>::Error> {
         self.0
             .write_iter(
                 ADDRESS, // Write data, no other control byte

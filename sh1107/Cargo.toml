@@ -10,6 +10,6 @@ license = "Apache-2.0"
 embedded-graphics-core = "*"
 either = { version = "*", default-features = false }
 itertools = { version = "*", default-features = false }
-embedded-hal-async = "0.0.1"
+embedded-hal-async = "0.1.0-alpha.1"
 futures = { version = "0.3.19", default-features = false, features = ["async-await"] }
 

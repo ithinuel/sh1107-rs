@@ -7,14 +7,14 @@ edition = "2021"
 
 [dependencies]
 sh1107 = { version = "*", path = "../sh1107" }
-embedded-hal-async = "0.0.1"
+embedded-hal-async = "0.1.0-alpha.1"
 
 [dev-dependencies]
 cortex-m = "0.7.3"
 cortex-m-rt = "0.7"
 
 embedded-graphics = "*"
-embedded-hal = { version = "1.0.0-alpha.7" }
+embedded-hal = { version = "1.0.0-alpha.8" }
 nb = "*"
 
 promicro-rp2040-boilerplate = { path = "../promicro-rp2040-boilerplate" }

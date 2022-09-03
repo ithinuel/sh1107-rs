@@ -1,2 +1,6 @@
 Cargo.lock
+.gdb_history
+.embed.toml
+openocd.cfg
+/.vim
 /target

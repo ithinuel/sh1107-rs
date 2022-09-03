@@ -8,10 +8,6 @@ use core::{
     ops::{Deref, DerefMut},
 };
 
-//use embedded_graphics_core::{
-//    draw_target::DrawTarget, geometry::OriginDimensions, pixelcolor::BinaryColor, prelude::Size,
-//    Pixel,
-//};
 use embedded_hal_async::i2c::{AddressMode as I2CAddressMode, ErrorType, I2c, SevenBitAddress};
 use futures::Future;
 use itertools::Itertools;

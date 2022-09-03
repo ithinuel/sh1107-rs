@@ -67,11 +67,11 @@ async fn demo(
         display.set_state(DisplayState::On).await
     })
     .await?;
-    wait_for(timer, 2_000_000).await;
-    for n in core::iter::repeat(0..128).flatten().take(512) {
+
+    for n in 0.. {
         // Scrolling screen
         display
-            .set_start_line((64 * n) % 128)
+            .set_start_line(n % 128)
             .await
             .expect("failed to set start line");
         display.wait_while_busy().await.expect("failure while busy");

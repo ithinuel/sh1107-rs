@@ -6,12 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+critical-section = "1.1.0"
+defmt = "0.3.2"
 embedded-hal-async = "0.1.0-alpha.1"
-futures = { version = "*", default-features = false }
-rp2040-async-i2c = { git = "https://github.com/ithinuel/rp2040-async-i2c" }
-sparkfun-pro-micro-rp2040 = "0.4.0"
-sh1107 = { version = "*", path = "../sh1107" }
-critical-section = "1.0.0"
 fugit = "0.3.6"
-panic-probe = "*"
-defmt = "0.3.0"
+futures = { version = "0.3.24", default-features = false }
+panic-probe = "0.3.0"
+rp2040-async-i2c = { git = "https://github.com/ithinuel/rp2040-async-i2c" }
+sh1107 = { version = "0.1.0", path = "../sh1107" }
+sparkfun-pro-micro-rp2040 = "0.4.0"

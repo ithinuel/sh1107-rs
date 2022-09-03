@@ -2,35 +2,33 @@
 #![feature(type_alias_impl_trait)]
 #![feature(generic_associated_types)]
 
-use core::cell::RefCell;
-use core::ops::Deref;
-use core::ops::DerefMut;
-use core::task::Poll;
-use core::task::Waker;
+use core::{
+    cell::RefCell,
+    ops::{Deref, DerefMut},
+    task::{Poll, Waker},
+};
 
 use critical_section::Mutex;
 use embedded_hal_async::i2c::ErrorType;
-use fugit::MicrosDurationU32;
-use fugit::RateExtU32;
-use futures::Future;
+use fugit::{MicrosDurationU32, RateExtU32};
+use futures::{future, Future};
 use panic_probe as _;
-use rp2040_async_i2c::AsyncI2C;
+use sparkfun_pro_micro_rp2040::{hal, Pins};
 
-use sparkfun_pro_micro_rp2040::hal::pac::interrupt;
-use sparkfun_pro_micro_rp2040::hal::timer::Alarm;
-use sparkfun_pro_micro_rp2040::hal::timer::Alarm0;
-use sparkfun_pro_micro_rp2040::hal::{
-    self,
-    gpio::{self, bank0, FunctionI2C, Pin},
-    pac,
-    prelude::_rphal_clocks_Clock,
+use hal::{
+    gpio::{bank0, FunctionI2C, Pin},
+    pac::{self, interrupt},
     sio::Sio,
+    timer::{Alarm, Alarm0},
     watchdog::Watchdog,
+    Clock,
 };
 
+use rp2040_async_i2c::AsyncI2C;
+
 pub use embedded_hal_async::i2c::SevenBitAddress;
+pub use hal::timer::Timer;
 pub use sparkfun_pro_micro_rp2040::entry;
-pub use sparkfun_pro_micro_rp2040::hal::timer::Timer;
 
 type I2CPeriphInner = AsyncI2C<
     pac::I2C0,
@@ -39,6 +37,7 @@ type I2CPeriphInner = AsyncI2C<
         Pin<bank0::Gpio17, FunctionI2C>,
     ),
 >;
+
 pub struct I2CPeriph(I2CPeriphInner);
 impl Deref for I2CPeriph {
     type Target = I2CPeriphInner;
@@ -52,10 +51,10 @@ impl DerefMut for I2CPeriph {
         &mut self.0
     }
 }
-impl embedded_hal_async::i2c::ErrorType for I2CPeriph {
+impl ErrorType for I2CPeriph {
     type Error = <I2CPeriphInner as ErrorType>::Error;
 }
-impl sh1107::WriteIter<embedded_hal_async::i2c::SevenBitAddress> for I2CPeriph {
+impl sh1107::WriteIter<SevenBitAddress> for I2CPeriph {
     type WriteIterFuture<'a, U>
     = impl Future<Output = Result<(), Self::Error>> + 'a
     where
@@ -74,12 +73,12 @@ impl sh1107::WriteIter<embedded_hal_async::i2c::SevenBitAddress> for I2CPeriph {
     }
 }
 
-type WakerCTX = (Alarm0, Option<Waker>);
-static ALARM0_WAKER: Mutex<RefCell<Option<WakerCTX>>> = Mutex::new(RefCell::new(None));
-pub async fn wait_for(timer: &mut Timer, delay: u32) {
+type Alarm0WakerCTX = (Alarm0, Option<Waker>);
+static ALARM0_WAKER: Mutex<RefCell<Option<Alarm0WakerCTX>>> = Mutex::new(RefCell::new(None));
+pub async fn wait_for(timer: &Timer, delay: u32) {
     if delay < 20 {
         let start = timer.get_counter_low();
-        futures::future::poll_fn(|cx| {
+        future::poll_fn(|cx| {
             cx.waker().wake_by_ref();
             if timer.get_counter_low().wrapping_sub(start) < delay {
                 Poll::Pending
@@ -90,7 +89,7 @@ pub async fn wait_for(timer: &mut Timer, delay: u32) {
         .await;
     } else {
         let mut started = false;
-        futures::future::poll_fn(move |cx| {
+        future::poll_fn(move |cx| {
             critical_section::with(|cs| {
                 if let Some((alarm, waker)) = ALARM0_WAKER.borrow_ref_mut(cs).as_mut() {
                     if !started {
@@ -115,6 +114,14 @@ pub async fn wait_for(timer: &mut Timer, delay: u32) {
     }
 }
 
+pub async fn timed<T>(op: &str, timer: &Timer, fut: impl Future<Output = T>) -> T {
+    let start = timer.get_counter_low();
+    let res = fut.await;
+    let diff = timer.get_counter_low().wrapping_sub(start);
+    defmt::info!("{} took {}us", op, diff);
+    res
+}
+
 #[interrupt]
 #[allow(non_snake_case)]
 fn TIMER_IRQ_0() {
@@ -130,10 +137,10 @@ fn TIMER_IRQ_0() {
     });
 }
 
-static WAKER: Mutex<RefCell<Option<Waker>>> = Mutex::new(RefCell::new(None));
+static I2C_WAKER: Mutex<RefCell<Option<Waker>>> = Mutex::new(RefCell::new(None));
 pub fn waker_setter(waker: Waker) {
     critical_section::with(|cs| {
-        *WAKER.borrow_ref_mut(cs) = Some(waker);
+        *I2C_WAKER.borrow_ref_mut(cs) = Some(waker);
     });
 }
 
@@ -142,27 +149,28 @@ pub fn waker_setter(waker: Waker) {
 fn I2C0_IRQ() {
     critical_section::with(|cs| {
         let i2c0 = unsafe { &pac::Peripherals::steal().I2C0 };
-        let stat = i2c0.ic_intr_stat.read();
-        if stat.r_tx_abrt().bit() {
-            defmt::trace!("i2c0: {:x}", stat.bits());
-            i2c0.ic_intr_mask.modify(|_, w| w.m_tx_abrt().enabled());
-        }
-        i2c0.ic_intr_mask
-            .modify(|_, w| w.m_tx_empty().enabled().m_rx_full().enabled());
-        WAKER.borrow_ref_mut(cs).take().map(|waker| waker.wake())
+        i2c0.ic_intr_mask.modify(|_, w| {
+            w.m_tx_empty()
+                .enabled()
+                .m_rx_full()
+                .enabled()
+                .m_tx_abrt()
+                .enabled()
+        });
+        I2C_WAKER
+            .borrow_ref_mut(cs)
+            .take()
+            .map(|waker| waker.wake())
     });
 }
 
 pub fn init() -> (Timer, I2CPeriph) {
     let mut pac = pac::Peripherals::take().unwrap();
     let _core = pac::CorePeripherals::take().unwrap();
-    let mut watchdog = Watchdog::new(pac.WATCHDOG);
-    let sio = Sio::new(pac.SIO);
 
-    // External high-speed crystal on the pico board is 12Mhz
-    let external_xtal_freq_hz = 12_000_000u32;
+    let mut watchdog = Watchdog::new(pac.WATCHDOG);
     let clocks = hal::clocks::init_clocks_and_plls(
-        external_xtal_freq_hz,
+        sparkfun_pro_micro_rp2040::XOSC_CRYSTAL_FREQ,
         pac.XOSC,
         pac.CLOCKS,
         pac.PLL_SYS,
@@ -176,7 +184,8 @@ pub fn init() -> (Timer, I2CPeriph) {
     let mut timer = Timer::new(pac.TIMER, &mut pac.RESETS);
     let alarm = timer.alarm_0().unwrap();
 
-    let pins = gpio::Pins::new(
+    let sio = Sio::new(pac.SIO);
+    let pins = Pins::new(
         pac.IO_BANK0,
         pac.PADS_BANK0,
         sio.gpio_bank0,
@@ -185,8 +194,8 @@ pub fn init() -> (Timer, I2CPeriph) {
 
     let mut i2c_ctrl = AsyncI2C::new(
         pac.I2C0,
-        pins.gpio16.into_mode(),
-        pins.gpio17.into_mode(),
+        pins.sda.into_mode(),
+        pins.scl.into_mode(),
         400_000.Hz(),
         &mut pac.RESETS,
         clocks.system_clock.freq(),

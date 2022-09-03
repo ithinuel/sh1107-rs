@@ -94,6 +94,7 @@ where
 
     pub async fn write_frame_by_column(
         &mut self,
+        dest: Destination,
         mut buf: impl Iterator<Item = u8>,
     ) -> Result<(), T::Error> {
         self.0
@@ -106,7 +107,12 @@ where
             self.0
                 .run_then_write_to_ram(
                     [
-                        Command::SetColumnAddress(col as u8),
+                        Command::SetColumnAddress(
+                            match dest {
+                                Destination::Frame1 => 0,
+                                Destination::Frame2 => 64,
+                            } + (col as u8),
+                        ),
                         Command::SetPageAddress(0),
                     ],
                     buf.take(PAGE.into()),
@@ -185,6 +191,7 @@ mod embedded_graphics {
     use crate::PAGE;
     use crate::ROW;
 
+    use super::Destination;
     use super::Display;
     use super::SevenBitAddress;
     use embedded_graphics::pixelcolor::BinaryColor;
@@ -221,6 +228,12 @@ mod embedded_graphics {
             })
         }
         pub async fn flush(&mut self) -> Result<(), <T as embedded_hal::i2c::ErrorType>::Error> {
+            self.flush_to(Destination::Frame1).await
+        }
+        pub async fn flush_to(
+            &mut self,
+            destination: Destination,
+        ) -> Result<(), <T as embedded_hal::i2c::ErrorType>::Error> {
             self.display
                 .0
                 .run([Command::SetAddressMode(AddressMode::Page)])
@@ -281,8 +294,13 @@ mod embedded_graphics {
                     .0
                     .run_then_write_to_ram(
                         [
-                            Command::SetColumnAddress(col), // 2bytes + intersperse
-                            Command::SetPageAddress(page),  // 1 byte + intersperse
+                            Command::SetColumnAddress(
+                                match destination {
+                                    Destination::Frame1 => 0,
+                                    Destination::Frame2 => 64,
+                                } + col,
+                            ), // 2bytes + intersperse
+                            Command::SetPageAddress(page), // 1 byte + intersperse
                         ],
                         self.bitmap[range].iter().cloned(),
                     )

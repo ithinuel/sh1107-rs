@@ -3,13 +3,15 @@ name = "sh1107"
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
+description = "Driver for the SH1107 DotMatrix OLED/PLED controller"
+homepage = "https://github.com/ithinuel/sh1107-rs"
+repository = "https://github.com/ithinuel/sh1107-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-embedded-graphics-core = "0.3.3"
 either = { version = "1.8.0", default-features = false }
 itertools = { version = "0.10.3", default-features = false }
 embedded-hal-async = "0.1.0-alpha.1"
-futures = { version = "0.3.19", default-features = false, features = ["async-await"] }
-defmt = { version = "0.3.0", optional = true }
+futures = { version = "0.3.24", default-features = false }
+defmt = { version = "0.3.2", optional = true }

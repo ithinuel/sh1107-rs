@@ -13,32 +13,35 @@ use embedded_hal_async::i2c::ErrorType;
 use fugit::MicrosDurationU32;
 use fugit::RateExtU32;
 use futures::Future;
+use hal::timer::Alarm;
 use panic_probe as _;
-use rp2040_async_i2c::AsyncI2C;
+use pimoroni_pico_explorer::{all_pins, hal};
+use rp2040_hal::pac::interrupt;
+use rp2040_hal::timer::Alarm0;
 
-use sparkfun_pro_micro_rp2040::hal::pac::interrupt;
-use sparkfun_pro_micro_rp2040::hal::timer::Alarm;
-use sparkfun_pro_micro_rp2040::hal::timer::Alarm0;
-use sparkfun_pro_micro_rp2040::hal::{
-    self,
-    gpio::{self, bank0, FunctionI2C, Pin},
+use hal::{
+    gpio::{bank0, FunctionI2C, Pin},
     pac,
-    prelude::_rphal_clocks_Clock,
     sio::Sio,
     watchdog::Watchdog,
+    Clock,
 };
 
+use rp2040_async_i2c::AsyncI2C;
+
 pub use embedded_hal_async::i2c::SevenBitAddress;
-pub use sparkfun_pro_micro_rp2040::entry;
-pub use sparkfun_pro_micro_rp2040::hal::timer::Timer;
+pub use pimoroni_pico_explorer::entry;
+
+pub type Timer = hal::timer::Timer;
 
 type I2CPeriphInner = AsyncI2C<
     pac::I2C0,
     (
-        Pin<bank0::Gpio16, FunctionI2C>,
-        Pin<bank0::Gpio17, FunctionI2C>,
+        Pin<bank0::Gpio20, FunctionI2C>,
+        Pin<bank0::Gpio21, FunctionI2C>,
     ),
 >;
+
 pub struct I2CPeriph(I2CPeriphInner);
 impl Deref for I2CPeriph {
     type Target = I2CPeriphInner;
@@ -74,9 +77,9 @@ impl sh1107::WriteIter<embedded_hal_async::i2c::SevenBitAddress> for I2CPeriph {
     }
 }
 
-type WakerCTX = (Alarm0, Option<Waker>);
-static ALARM0_WAKER: Mutex<RefCell<Option<WakerCTX>>> = Mutex::new(RefCell::new(None));
-pub async fn wait_for(timer: &mut Timer, delay: u32) {
+type Alarm0WakerCTX = (Alarm0, Option<Waker>);
+static ALARM0_WAKER: Mutex<RefCell<Option<Alarm0WakerCTX>>> = Mutex::new(RefCell::new(None));
+pub async fn wait_for(timer: &Timer, delay: u32) {
     if delay < 20 {
         let start = timer.get_counter_low();
         futures::future::poll_fn(|cx| {
@@ -115,6 +118,14 @@ pub async fn wait_for(timer: &mut Timer, delay: u32) {
     }
 }
 
+pub async fn timed<T>(op: &str, timer: &Timer, fut: impl Future<Output = T>) -> T {
+    let start = timer.get_counter_low();
+    let res = fut.await;
+    let diff = timer.get_counter_low().wrapping_sub(start);
+    defmt::info!("{} took {}us", op, diff);
+    res
+}
+
 #[interrupt]
 #[allow(non_snake_case)]
 fn TIMER_IRQ_0() {
@@ -130,10 +141,10 @@ fn TIMER_IRQ_0() {
     });
 }
 
-static WAKER: Mutex<RefCell<Option<Waker>>> = Mutex::new(RefCell::new(None));
+static I2C_WAKER: Mutex<RefCell<Option<Waker>>> = Mutex::new(RefCell::new(None));
 pub fn waker_setter(waker: Waker) {
     critical_section::with(|cs| {
-        *WAKER.borrow_ref_mut(cs) = Some(waker);
+        *I2C_WAKER.borrow_ref_mut(cs) = Some(waker);
     });
 }
 
@@ -141,28 +152,31 @@ pub fn waker_setter(waker: Waker) {
 #[allow(non_snake_case)]
 fn I2C0_IRQ() {
     critical_section::with(|cs| {
-        let i2c0 = unsafe { &pac::Peripherals::steal().I2C0 };
+        let i2c0 = unsafe { &rp2040_hal::pac::Peripherals::steal().I2C0 };
         let stat = i2c0.ic_intr_stat.read();
         if stat.r_tx_abrt().bit() {
-            defmt::trace!("i2c0: {:x}", stat.bits());
+            defmt::trace!("i2c0: stat {:x}", stat.bits());
             i2c0.ic_intr_mask.modify(|_, w| w.m_tx_abrt().enabled());
+            use embedded_hal::i2c::Error;
+            let err = rp2040_hal::i2c::Error::Abort(i2c0.ic_tx_abrt_source.read().bits()).kind();
+            defmt::trace!("i2c: abort_src {}", defmt::Debug2Format(&err));
         }
         i2c0.ic_intr_mask
             .modify(|_, w| w.m_tx_empty().enabled().m_rx_full().enabled());
-        WAKER.borrow_ref_mut(cs).take().map(|waker| waker.wake())
+        I2C_WAKER
+            .borrow_ref_mut(cs)
+            .take()
+            .map(|waker| waker.wake())
     });
 }
 
 pub fn init() -> (Timer, I2CPeriph) {
     let mut pac = pac::Peripherals::take().unwrap();
     let _core = pac::CorePeripherals::take().unwrap();
-    let mut watchdog = Watchdog::new(pac.WATCHDOG);
-    let sio = Sio::new(pac.SIO);
 
-    // External high-speed crystal on the pico board is 12Mhz
-    let external_xtal_freq_hz = 12_000_000u32;
+    let mut watchdog = Watchdog::new(pac.WATCHDOG);
     let clocks = hal::clocks::init_clocks_and_plls(
-        external_xtal_freq_hz,
+        pimoroni_pico_explorer::XOSC_CRYSTAL_FREQ,
         pac.XOSC,
         pac.CLOCKS,
         pac.PLL_SYS,
@@ -173,10 +187,11 @@ pub fn init() -> (Timer, I2CPeriph) {
     .ok()
     .unwrap();
 
-    let mut timer = Timer::new(pac.TIMER, &mut pac.RESETS);
+    let mut timer = hal::timer::Timer::new(pac.TIMER, &mut pac.RESETS);
     let alarm = timer.alarm_0().unwrap();
 
-    let pins = gpio::Pins::new(
+    let sio = Sio::new(pac.SIO);
+    let pins = all_pins::Pins::new(
         pac.IO_BANK0,
         pac.PADS_BANK0,
         sio.gpio_bank0,
@@ -185,8 +200,8 @@ pub fn init() -> (Timer, I2CPeriph) {
 
     let mut i2c_ctrl = AsyncI2C::new(
         pac.I2C0,
-        pins.gpio16.into_mode(),
-        pins.gpio17.into_mode(),
+        pins.i2c_sda.into_mode(),
+        pins.i2c_scl.into_mode(),
         400_000.Hz(),
         &mut pac.RESETS,
         clocks.system_clock.freq(),
@@ -194,10 +209,8 @@ pub fn init() -> (Timer, I2CPeriph) {
     i2c_ctrl.set_waker_setter(waker_setter);
 
     critical_section::with(move |cs| unsafe {
-        pac::NVIC::unpend(pac::Interrupt::I2C0_IRQ);
-        pac::NVIC::unmask(pac::Interrupt::I2C0_IRQ);
-        pac::NVIC::unpend(pac::Interrupt::TIMER_IRQ_0);
-        pac::NVIC::unmask(pac::Interrupt::TIMER_IRQ_0);
+        rp2040_hal::pac::NVIC::unmask(rp2040_hal::pac::Interrupt::I2C0_IRQ);
+        rp2040_hal::pac::NVIC::unmask(rp2040_hal::pac::Interrupt::TIMER_IRQ_0);
         *ALARM0_WAKER.borrow_ref_mut(cs) = Some((alarm, None));
     });
 

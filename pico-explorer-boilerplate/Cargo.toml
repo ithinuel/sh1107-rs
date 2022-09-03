@@ -1,0 +1,22 @@
+[package]
+name = "pico-explorer-boilerplate"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cortex-m = "0.7.6"
+critical-section = "1.0.0"
+defmt = "0.3.0"
+embedded-hal = { version = "=1.0.0-alpha.8" }
+embedded-hal-async = "0.1.0-alpha.1"
+fugit = "0.3.6"
+futures = { version = "0.3.19", default-features = false, features = [
+  "async-await",
+] }
+panic-probe = { version = "0.3.0", features = ["print-defmt"] }
+pimoroni-pico-explorer = "0.4.0"
+rp2040-async-i2c = { git = "https://github.com/ithinuel/rp2040-async-i2c" }
+rp2040-hal = { version = "0.6.0", features = ["defmt"] }
+sh1107 = { version = "*", path = "../sh1107" }

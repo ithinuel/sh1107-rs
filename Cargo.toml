@@ -1,14 +1,22 @@
 [workspace]
-members = ["adafruit-featherwing-oled128x64", "sh1107", "promicro-rp2040-boilerplate"]
+members = [
+  "adafruit-featherwing-oled128x64",
+  "sh1107",
+  "promicro-rp2040-boilerplate",
+  "pico-explorer-boilerplate",
+]
 
 [profile.release]
-debug = true
-lto = true
+debug = 1
+lto = false
 codegen-units = 1
 panic = "abort"
-opt-level = "s"
+opt-level = 2
 
 [patch.crates-io]
-#rp2040-hal = { path = "../vendor/rp-hal/rp2040-hal" }
 embedded-hal = { git = "https://github.com/rust-embedded/embedded-hal" }
 embedded-hal-async = { git = "https://github.com/rust-embedded/embedded-hal" }
+
+[patch.'https://github.com/ithinuel/rp2040-async-i2c']
+rp2040-async-i2c = { path = "../rp2040-async-i2c" }
+

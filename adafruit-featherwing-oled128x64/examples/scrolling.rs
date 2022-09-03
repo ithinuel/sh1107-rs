@@ -1,8 +1,19 @@
 #![no_std]
 #![no_main]
 
-use adafruit_featherwing_oled128x64::{Display, DisplayState};
+#[cfg(any(
+    not(any(feature = "pico-explorer", feature = "promicro")),
+    all(feature = "pico-explorer", feature = "promicro")
+))]
+compile_error!("One of \"pico-explorer\" or \"promicro\" feature must be enabled.");
+
+#[cfg(feature = "pico-explorer")]
+use pico_explorer_boilerplate as bsp;
+#[cfg(feature = "promicro")]
 use promicro_rp2040_boilerplate as bsp;
+
+use adafruit_featherwing_oled128x64::{Destination, Display, DisplayState};
+use defmt_rtt as _;
 
 const ADDRESS: bsp::SevenBitAddress = 0x3C;
 
@@ -25,76 +36,59 @@ const GLYPHS: [u8; 1024] = {
     g
 };
 
-async fn demo(timer: bsp::Timer, i2c_bus: bsp::I2CPeriph) {
-    use bsp::wait_for;
+async fn demo(
+    timer: &bsp::Timer,
+    i2c_bus: bsp::I2CPeriph,
+) -> Result<(), <bsp::I2CPeriph as embedded_hal::i2c::ErrorType>::Error> {
+    use bsp::{timed, wait_for};
 
-    wait_for(&timer, 100_000).await;
+    wait_for(timer, 1_000_000).await;
 
-    let mut display: Display<_, ADDRESS> = Display::new(i2c_bus)
-        .await
-        .ok()
-        .expect("Failed to initialized display");
+    let mut display: Display<_, ADDRESS> =
+        timed("Init", timer, async { Display::new(i2c_bus).await })
+            .await
+            .map_err(|(_, e)| e)?;
 
-    wait_for(&timer, 200_000).await;
-    while display.is_busy().await.unwrap_or(true) {}
+    timed("Write Frame", timer, async {
+        display.wait_while_busy().await?;
+        display
+            .write_frame_by_page(Destination::Frame1, GLYPHS.into_iter())
+            .await?;
+        display.wait_while_busy().await?;
+        display
+            .write_frame_by_page(Destination::Frame2, GLYPHS.into_iter())
+            .await
+    })
+    .await?;
 
-    display
-        .write_frame_by_page(GLYPHS.iter().cloned())
-        .await
-        .ok()
-        .expect("failed to write frame data");
-
-    let mut n = 0u8;
-
-    loop {
-        n = n.wrapping_add(1);
-        n %= 8;
-        wait_for(&timer, 200_000).await;
-
+    timed("Turn on Display", timer, async {
+        display.set_contrast(0).await?;
+        display.wait_while_busy().await?;
+        display.set_state(DisplayState::On).await
+    })
+    .await?;
+    wait_for(timer, 2_000_000).await;
+    for n in core::iter::repeat(0..128).flatten().take(512) {
         // Scrolling screen
         display
-            .set_line_and_offset(n, 0)
+            .set_start_line((64 * n) % 128)
             .await
-            .expect("Failed to set line and offset");
-        //sh1107
-        //    .run([Command::SetStartLine(n)])
-        //    //.run([Command::SetDisplayOffset(n.wrapping_add(96))])
-        //    .await
-        //    .expect("woops");
-        wait_for(&timer, 5_000).await;
-
-        // Clear screen
-        display
-            .write_frame_by_column(core::iter::repeat(0).take(128 * 128))
-            .await
-            .expect("failed to write data by column");
-
-        display
-            .set_state(DisplayState::On)
-            .await
-            .expect("Failed to turn the display On");
-
-        //write_frame(&mut sh1107).await.expect("failed");
-
-        display
-            .set_state(DisplayState::Off)
-            .await
-            .expect("Failed to turn the display Off");
-
-        display
-            .write_frame_by_column(core::iter::repeat(0).take(128 * 16))
-            .await
-            .expect("Failed to partially clear");
+            .expect("failed to set start line");
+        display.wait_while_busy().await.expect("failure while busy");
+        wait_for(timer, 45_000).await;
     }
+    defmt::info!("Done");
+    futures::pending!();
+    Ok(())
 }
 
-#[cortex_m_rt::entry]
+#[bsp::entry]
 fn main() -> ! {
     let (timer, i2c) = bsp::init();
 
     let runtime = nostd_async::Runtime::new();
-    let mut task = nostd_async::Task::new(demo(timer, i2c));
+    let mut task = nostd_async::Task::new(demo(&timer, i2c));
     let handle = task.spawn(&runtime);
-    handle.join();
+    handle.join().expect("Some error occured");
     unreachable!()
 }

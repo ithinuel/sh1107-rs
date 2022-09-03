@@ -3,7 +3,11 @@
 //! See the [datasheet](https://www.displayfuture.com/Display/datasheet/controller/SH1107.pdf) for
 //! further details
 
-use either::Either;
+use core::{
+    iter::once,
+    ops::{Deref, DerefMut},
+};
+
 //use embedded_graphics_core::{
 //    draw_target::DrawTarget, geometry::OriginDimensions, pixelcolor::BinaryColor, prelude::Size,
 //    Pixel,
@@ -26,26 +30,33 @@ pub trait WriteIter<A: I2CAddressMode>: ErrorType {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DisplayState {
     Off,
     On,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Direction {
     Normal,
     Inverted,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum AddressMode {
     Page,
     Column,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DisplayMode {
     BlackOnWhite,
     WhiteOnBlack,
 }
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Command {
     SetColumnAddress(u8),
     SetAddressMode(AddressMode),
@@ -70,10 +81,13 @@ pub enum Command {
     SetDCDCSettings(u8),
     DisplayOnOff(DisplayState),
     SetPageAddress(u8),
+    StartReadModifyWrite,
+    EndReadModifyWrite,
+    Nop,
 }
 
 impl Command {
-    fn encode(self) -> Either<[u8; 1], [u8; 2]> {
+    fn encode(self) -> impl Iterator<Item = u8> {
         use either::Either::*;
         match self {
             Self::SetColumnAddress(addr) => {
@@ -81,32 +95,33 @@ impl Command {
                 Right([addr & 0xF, 0x10 | ((addr & 0x70) >> 4)])
             }
             Self::SetAddressMode(mode) => {
-                Left([0x20 | if let AddressMode::Page = mode { 0 } else { 1 }])
+                Left(0x20 | if let AddressMode::Page = mode { 0 } else { 1 })
             }
             Self::SetContrastControl(contrast) => Right([0x81, contrast]),
-            Self::SetSegmentReMap(is_remapped) => Left([0xA0 | if is_remapped { 1 } else { 0 }]),
+            Self::SetSegmentReMap(is_remapped) => Left(0xA0 | if is_remapped { 1 } else { 0 }),
             Self::SetMultiplexRatio(ratio) => {
                 assert!((1..=128).contains(&ratio));
                 Right([0xA8, ratio - 1])
             }
-            Self::ForceEntireDisplay(state) => Left([0xA4 | if state { 1 } else { 0 }]),
-            Self::SetDisplayMode(mode) => Left([0xA6
-                | if let DisplayMode::WhiteOnBlack = mode {
+            Self::ForceEntireDisplay(state) => Left(0xA4 | if state { 1 } else { 0 }),
+            Self::SetDisplayMode(mode) => Left(
+                0xA6 | if let DisplayMode::WhiteOnBlack = mode {
                     1
                 } else {
                     0
-                }]),
+                },
+            ),
             Self::SetDisplayOffset(offset) => Right([0xD3, offset & 0x7F]),
-            //Self::SetDCDCSettings(cfg) => Right([0xAD, 0x80 | (cfg & 0x0F)]),
+            Self::SetDCDCSettings(cfg) => Right([0xAD, 0x80 | (cfg & 0x0F)]),
             Self::DisplayOnOff(state) => {
-                Left([0xAE | if let DisplayState::On = state { 1 } else { 0 }])
+                Left(0xAE | if let DisplayState::On = state { 1 } else { 0 })
             }
             Self::SetPageAddress(addr) => {
                 assert!(addr < 16);
-                Left([0xB0 | (addr & 0x0F)])
+                Left(0xB0 | (addr & 0x0F))
             }
             Self::SetCOMScanDirection(dir) => {
-                Left([0xC0 | if let Direction::Normal = dir { 0 } else { 0x08 }])
+                Left(0xC0 | if let Direction::Normal = dir { 0 } else { 0x08 })
             }
             Self::SetClkDividerOscFrequency {
                 divider,
@@ -117,7 +132,7 @@ impl Command {
                     "osc_freq_ratio must be a multiple of 5."
                 );
                 assert!(
-                    -25 <= osc_freq_ratio && osc_freq_ratio <= 50,
+                    (-25..=50).contains(&osc_freq_ratio),
                     "osc_freq_ratio must be within [-25; 50]"
                 );
                 assert!((1..=16).contains(&divider), "divider must be in [1; 16]");
@@ -146,35 +161,31 @@ impl Command {
 
                 Right([0xDC, line & 0x7F])
             }
-            //Self::StartReadModifyWrite => Left([0xE0]),
-            //Self::EndReadModifyWrite => Left([0xEE]),
-            //Self::Nop => Left([0xE3]),
-            _ => unimplemented!(),
+            Self::StartReadModifyWrite => Left(0xE0),
+            Self::EndReadModifyWrite => Left(0xEE),
+            Self::Nop => Left(0xE3),
         }
+        .map_left(|v| [v])
+        .into_iter()
     }
 }
 
 pub struct Sh1107<T, const ADDRESS: SevenBitAddress>(T);
 
-impl<T, U, const ADDRESS: SevenBitAddress> Sh1107<T, ADDRESS>
+impl<T, U, V, const ADDRESS: SevenBitAddress> Sh1107<T, ADDRESS>
 where
-    T: I2c<SevenBitAddress, Error = U> + WriteIter<SevenBitAddress>,
+    T: WriteIter<SevenBitAddress, Error = V> + Deref<Target = U> + DerefMut,
+    U: I2c<SevenBitAddress, Error = V>,
 {
     pub fn new(i2c: T) -> Self {
         Self(i2c)
     }
 
-    pub async fn run(&mut self, commands: impl IntoIterator<Item = Command>) -> Result<(), U> {
+    pub async fn run(&mut self, commands: impl IntoIterator<Item = Command>) -> Result<(), V> {
         self.0
             .write_iter(
                 ADDRESS,
-                Iterator::chain(
-                    core::iter::once(0x00),
-                    commands
-                        .into_iter()
-                        .map(Command::encode)
-                        .flat_map(Either::into_iter),
-                ),
+                Iterator::chain(once(0x00), commands.into_iter().flat_map(Command::encode)),
             )
             .await
     }
@@ -186,7 +197,7 @@ where
         self.0
             .write_iter(
                 ADDRESS, // Write data, no other control byte
-                core::iter::once(0x40).chain(buf),
+                once(0x40).chain(buf),
             )
             .await
     }
@@ -195,49 +206,27 @@ where
         &mut self,
         commands: impl IntoIterator<Item = Command>,
         data: impl IntoIterator<Item = u8>,
-    ) -> Result<(), U> {
+    ) -> Result<(), V> {
         self.0
             .write_iter(
                 ADDRESS,
                 // command phase
                 Iterator::chain(
-                    core::iter::once(0x80),
-                    Itertools::intersperse(
-                        commands
-                            .into_iter()
-                            .flat_map(|cmd| cmd.encode().into_iter()),
-                        0x80,
-                    ),
+                    once(0x80),
+                    Itertools::intersperse(commands.into_iter().flat_map(Command::encode), 0x80),
                 )
                 // transition to data phase
-                .chain(core::iter::once(0x40))
+                .chain(once(0x40))
                 .chain(data.into_iter()),
             )
             .await
     }
 
-    //pub async fn read_modify_write(
-    //    &mut self,
-    //    data_process: impl FnMut(u8) -> u8,
-    //) -> Result<(), U> {
-    //    let mut data = 0;
-    //    //self.0.write_iter(address, bytes)
-    //    todo!()
-    //}
-    //pub async fn run_then_read_modify_write(
-    //    &mut self,
-    //    data_process: impl FnMut(u8) -> u8,
-    //) -> Result<(), U> {
-    //    let mut data = 0;
-    //    //self.0.write_iter(address, bytes)
-    //    todo!()
-    //}
-
-    pub async fn read_from_ram(&mut self, buf: &mut [u8]) -> Result<(), U> {
+    pub async fn read_from_ram(&mut self, buf: &mut [u8]) -> Result<(), V> {
         self.0.write_read(ADDRESS, &[0x40], buf).await
     }
 
-    pub async fn is_busy(&mut self) -> Result<bool, U> {
+    pub async fn is_busy(&mut self) -> Result<bool, V> {
         let mut res = 0u8;
         self.0
             .write_read(ADDRESS, &[0x80], core::slice::from_mut(&mut res))

@@ -54,13 +54,19 @@ async fn demo(
         display
             .write_frame_by_page(Destination::Frame1, GLYPHS.into_iter())
             .await?;
+        display.set_contrast(0).await?;
         display.set_state(DisplayState::On).await
     })
     .await?;
 
-    let _i2c_bus = display.release();
+    for c in core::iter::repeat((0..=255).chain((1..=254).rev())).flatten() {
+        display.set_contrast(c).await?;
 
-    futures::pending!();
+        // brightest stays on the shortest: 5ms
+        // darkest stays off the longest: 40ms
+
+        wait_for(timer, 1_000 + ((14_000 * u32::from(255 - c)) / 255)).await;
+    }
     Ok(())
 }
 

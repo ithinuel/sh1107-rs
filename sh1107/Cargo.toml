@@ -1,0 +1,15 @@
+[package]
+name = "sh1107"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+embedded-graphics-core = "*"
+either = { version = "*", default-features = false }
+itertools = { version = "*", default-features = false }
+embedded-hal-async = "0.0.1"
+futures = { version = "0.3.19", default-features = false, features = ["async-await"] }
+

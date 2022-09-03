@@ -1,34 +1,5 @@
-[package]
-name = "sh1107-async"
-version = "0.1.0"
-edition = "2021"
-license = "Apache-2.0"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-embassy-traits = { git = "https://github.com/embassy-rs/embassy", rev = "a8797f84f69b7668a3f89b6cba3e39bce5649079" }
-embedded-graphics-core = "*"
-either = { version = "*", default-features = false }
-itertools = { version = "*", default-features = false }
-
-[dev-dependencies]
-panic-halt = "*"
-
-cortex-m = "0.7.3"
-cortex-m-rt = "0.7"
-
-embedded-hal = { version = "0.2.5", features = ["unproven"] }
-nb = "*"
-embedded-time = "0.12.0"
-
-rp2040-hal = { git = "https://github.com/rp-rs/rp-hal", features = ["rt", "embassy-traits"] }
-rp2040-boot2 = { git = "https://github.com/rp-rs/rp2040-boot2-rs", branch = "main" }
-
-futures = { version = "*", default-features = false }
-embassy = { git = "https://github.com/embassy-rs/embassy", rev = "a8797f84f69b7668a3f89b6cba3e39bce5649079" }
-
-embedded-graphics = "*"
+[workspace]
+members = ["adafruit-featherwing-oled128x64", "sh1107", "promicro-rp2040-boilerplate"]
 
 [profile.release]
 debug = true
@@ -37,8 +8,7 @@ codegen-units = 1
 panic = "abort"
 opt-level = "s"
 
-[patch.'https://github.com/rp-rs/rp-hal']
-rp2040-hal = { path = "../rp-hal/rp2040-hal" }
-
-[patch.'https://github.com/embassy-rs/embassy']
-embassy-traits = { path = "../embassy/embassy-traits" }
+[patch.crates-io]
+#rp2040-hal = { path = "../vendor/rp-hal/rp2040-hal" }
+embedded-hal = { git = "https://github.com/rust-embedded/embedded-hal" }
+embedded-hal-async = { git = "https://github.com/rust-embedded/embedded-hal" }

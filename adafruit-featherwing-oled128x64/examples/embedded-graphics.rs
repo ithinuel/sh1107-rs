@@ -1,11 +1,6 @@
 #![no_std]
 #![no_main]
 
-#[cfg(any(
-    not(any(feature = "pico-explorer", feature = "promicro")),
-    all(feature = "pico-explorer", feature = "promicro")
-))]
-compile_error!("One of \"pico-explorer\" or \"promicro\" feature must be enabled.");
 
 use core::convert::Infallible;
 
@@ -18,10 +13,17 @@ use embedded_graphics::{
     Drawable,
 };
 
-#[cfg(feature = "pico-explorer")]
-use pico_explorer_boilerplate as bsp;
-#[cfg(feature = "promicro")]
-use promicro_rp2040_boilerplate as bsp;
+cfg_if::cfg_if! {
+    if #[cfg(feature = "pico-explorer")] {
+        use pico_explorer_boilerplate as bsp;
+    } else if #[cfg(feature = "promicro")] {
+        use promicro_rp2040_boilerplate as bsp;
+    } else if #[cfg(feature = "rpi-pico")] {
+        use rpi_pico_boilerplate as bsp;
+    } else {
+        compile_error!("One platform feature must be selected");
+    }
+}
 
 use adafruit_featherwing_oled128x64::{BufferedDisplay, DisplayState, PAGE};
 use defmt_rtt as _;

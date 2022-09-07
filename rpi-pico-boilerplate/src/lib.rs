@@ -39,39 +39,7 @@ type I2CPeriphInner = I2c<
 >;
 
 pub struct I2CPeriph(I2CPeriphInner);
-impl Deref for I2CPeriph {
-    type Target = I2CPeriphInner;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl DerefMut for I2CPeriph {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-impl ErrorType for I2CPeriph {
-    type Error = <I2CPeriphInner as ErrorType>::Error;
-}
-impl sh1107::WriteIter<SevenBitAddress> for I2CPeriph {
-    type WriteIterFuture<'a, U>
-    = impl Future<Output = Result<(), Self::Error>> + 'a
-    where
-        Self: 'a,
-        U: 'a;
-
-    fn write_iter<'a, U>(
-        &'a mut self,
-        address: SevenBitAddress,
-        bytes: U,
-    ) -> Self::WriteIterFuture<'a, U>
-    where
-        U: IntoIterator<Item = u8> + 'a,
-    {
-        self.0.write_iter(address, bytes)
-    }
-}
+sh1107::impl_write_iter!(I2CPeriph => I2CPeriphInner: write_iter);
 
 type Alarm0WakerCTX = (Alarm0, Option<Waker>);
 static ALARM0_WAKER: Mutex<RefCell<Option<Alarm0WakerCTX>>> = Mutex::new(RefCell::new(None));

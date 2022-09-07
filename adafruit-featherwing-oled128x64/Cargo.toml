@@ -27,6 +27,7 @@ embedded-hal = { version = "1.0.0-alpha.8" }
 promicro-rp2040-boilerplate = { path = "../promicro-rp2040-boilerplate" }
 pico-explorer-boilerplate = { path = "../pico-explorer-boilerplate" }
 pico-explorer-pio-boilerplate = { path = "../pico-explorer-pio-boilerplate" }
+pico-explorer-minimal-boilerplate = { path = "../pico-explorer-minimal-boilerplate" }
 rpi-pico-boilerplate = { path = "../rpi-pico-boilerplate" }
 
 nostd_async = { version = "0.6.0", features = ["cortex_m"] }
@@ -39,6 +40,7 @@ futures = { version = "0.3.24", default-features = false, features = [ "async-aw
 promicro = []
 pico-explorer = []
 pico-explorer-pio = []
+pico-explorer-minimal = []
 rpi-pico = []
 embedded-graphics = ["dep:embedded-graphics", "embedded-hal", "itertools", "arrayvec"]
 

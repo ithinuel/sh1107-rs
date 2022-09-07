@@ -234,3 +234,39 @@ where
         self.0
     }
 }
+
+/// Helper macro to implement Deref, DerefMut and sh1107::WriteIter on a new type.
+#[macro_export]
+macro_rules! impl_write_iter {
+    ($outer:ty => $inner:ty : $method:ident) => {
+        impl Deref for $outer {
+            type Target = $inner;
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
+        impl DerefMut for $outer {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.0
+            }
+        }
+        impl ErrorType for $outer {
+            type Error = <$inner as ErrorType>::Error;
+        }
+        impl sh1107::WriteIter<SevenBitAddress> for I2CPeriph {
+            type WriteIterFuture<'a, U>= impl Future<Output = Result<(), Self::Error>> + 'a where Self: 'a, U: 'a;
+
+            fn write_iter<'a, U>(
+                &'a mut self,
+                address: SevenBitAddress,
+                bytes: U,
+            ) -> Self::WriteIterFuture<'a, U>
+            where
+                U: IntoIterator<Item = u8> + 'a,
+            {
+                self.0.$method(address, bytes)
+            }
+        }
+    };
+}

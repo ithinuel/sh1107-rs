@@ -13,10 +13,14 @@ use embedded_hal_async::i2c::ErrorType;
 use fugit::{MicrosDurationU32, RateExtU32};
 use futures::{future, Future};
 use panic_probe as _;
-use pimoroni_pico_explorer::{all_pins::Pins, hal};
+use pimoroni_pico_explorer::{
+    all_pins::Pins,
+    hal::{self, pio::SM0, prelude::_rphal_pio_PIOExt},
+    pac::PIO0,
+};
 
 use hal::{
-    gpio::{bank0, FunctionI2C, Pin},
+    gpio::bank0,
     pac::{self, interrupt},
     sio::Sio,
     timer::{Alarm, Alarm0},
@@ -24,19 +28,13 @@ use hal::{
     Clock,
 };
 
-use rp2040_async_i2c::I2c;
+use rp2040_async_i2c::pio::I2c;
 
 pub use embedded_hal_async::i2c::SevenBitAddress;
 pub use hal::timer::Timer;
 pub use pimoroni_pico_explorer::entry;
 
-type I2CPeriphInner = I2c<
-    pac::I2C0,
-    (
-        Pin<bank0::Gpio20, FunctionI2C>,
-        Pin<bank0::Gpio21, FunctionI2C>,
-    ),
->;
+type I2CPeriphInner = I2c<'static, PIO0, SM0, bank0::Gpio20, bank0::Gpio21>;
 
 pub struct I2CPeriph(I2CPeriphInner);
 impl Deref for I2CPeriph {
@@ -137,30 +135,29 @@ fn TIMER_IRQ_0() {
     });
 }
 
-static I2C_WAKER: Mutex<RefCell<Option<Waker>>> = Mutex::new(RefCell::new(None));
-pub fn waker_setter(waker: Waker) {
+static mut PIO: Option<hal::pio::PIO<PIO0>> = None;
+static PIO_WAKER: Mutex<RefCell<Option<core::task::Waker>>> = Mutex::new(RefCell::new(None));
+fn waker_setter(waker: core::task::Waker) {
     critical_section::with(|cs| {
-        *I2C_WAKER.borrow_ref_mut(cs) = Some(waker);
+        PIO_WAKER.borrow_ref_mut(cs).replace(waker);
     });
 }
-
 #[interrupt]
 #[allow(non_snake_case)]
-fn I2C0_IRQ() {
+fn PIO0_IRQ_0() {
     critical_section::with(|cs| {
-        let i2c0 = unsafe { &pac::Peripherals::steal().I2C0 };
-        i2c0.ic_intr_mask.modify(|_, w| {
-            w.m_tx_empty()
-                .enabled()
-                .m_rx_full()
-                .enabled()
-                .m_tx_abrt()
-                .enabled()
+        let pio = unsafe { &*pac::PIO0::ptr() };
+        pio.sm_irq[0].irq_inte.modify(|_, w| {
+            w.sm0()
+                .clear_bit()
+                .sm0_txnfull()
+                .clear_bit()
+                .sm0_rxnempty()
+                .clear_bit()
         });
-        I2C_WAKER
-            .borrow_ref_mut(cs)
-            .take()
-            .map(|waker| waker.wake())
+        if let Some(waker) = PIO_WAKER.borrow_ref_mut(cs).take() {
+            waker.wake();
+        }
     });
 }
 
@@ -192,21 +189,24 @@ pub fn init() -> (Timer, I2CPeriph) {
         &mut pac.RESETS,
     );
 
+    let (pio0, pio0sm0, ..) = pac.PIO0.split(&mut pac.RESETS);
+    unsafe { PIO = Some(pio0) };
+
     let mut i2c_ctrl = I2c::new(
-        pac.I2C0,
-        pins.i2c_sda.into_mode(),
-        pins.i2c_scl.into_mode(),
-        400_000.Hz(),
-        &mut pac.RESETS,
+        unsafe { PIO.as_mut().unwrap() },
+        pins.i2c_sda.into_pull_up_disabled(),
+        pins.i2c_scl.into_pull_up_disabled(),
+        pio0sm0,
+        800_000.Hz(),
         clocks.system_clock.freq(),
     );
     i2c_ctrl.set_waker_setter(waker_setter);
 
     critical_section::with(move |cs| unsafe {
-        pac::NVIC::unpend(pac::Interrupt::I2C0_IRQ);
-        pac::NVIC::unmask(pac::Interrupt::I2C0_IRQ);
         pac::NVIC::unpend(pac::Interrupt::TIMER_IRQ_0);
         pac::NVIC::unmask(pac::Interrupt::TIMER_IRQ_0);
+        pac::NVIC::unpend(pac::Interrupt::PIO0_IRQ_0);
+        pac::NVIC::unmask(pac::Interrupt::PIO0_IRQ_0);
         *ALARM0_WAKER.borrow_ref_mut(cs) = Some((alarm, None));
     });
 

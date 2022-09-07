@@ -4,6 +4,8 @@
 cfg_if::cfg_if! {
     if #[cfg(feature = "pico-explorer")] {
         use pico_explorer_boilerplate as bsp;
+    } else if #[cfg(feature = "pico-explorer-pio")] {
+        use pico_explorer_pio_boilerplate as bsp;
     } else if #[cfg(feature = "promicro")] {
         use promicro_rp2040_boilerplate as bsp;
     } else if #[cfg(feature = "rpi-pico")] {

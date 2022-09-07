@@ -1,5 +1,9 @@
 fn main() {
-    if cfg!(feature = "rpi-pico") || cfg!(feature = "pico-explorer") || cfg!(feature = "promicro") {
+    if cfg!(feature = "pico-explorer")
+        || cfg!(feature = "pico-explorer-pio")
+        || cfg!(feature = "promicro")
+        || cfg!(feature = "rpi-pico")
+    {
         println!("cargo:rustc-link-arg=-Tdefmt.x");
     }
 }

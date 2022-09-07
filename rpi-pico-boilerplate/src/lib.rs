@@ -13,7 +13,7 @@ use embedded_hal_async::i2c::ErrorType;
 use fugit::{MicrosDurationU32, RateExtU32};
 use futures::{future, Future};
 use panic_probe as _;
-use rp_pico::{Pins, hal};
+use rp_pico::{hal, Pins};
 
 use hal::{
     gpio::{bank0, FunctionI2C, Pin},
@@ -24,13 +24,13 @@ use hal::{
     Clock,
 };
 
-use rp2040_async_i2c::AsyncI2C;
+use rp2040_async_i2c::I2c;
 
 pub use embedded_hal_async::i2c::SevenBitAddress;
 pub use hal::timer::Timer;
 pub use rp_pico::entry;
 
-type I2CPeriphInner = AsyncI2C<
+type I2CPeriphInner = I2c<
     pac::I2C1,
     (
         Pin<bank0::Gpio14, FunctionI2C>,
@@ -79,8 +79,8 @@ pub async fn wait_for(timer: &Timer, delay: u32) {
     if delay < 20 {
         let start = timer.get_counter_low();
         future::poll_fn(|cx| {
-            cx.waker().wake_by_ref();
             if timer.get_counter_low().wrapping_sub(start) < delay {
+                cx.waker().wake_by_ref();
                 Poll::Pending
             } else {
                 Poll::Ready(())
@@ -192,7 +192,7 @@ pub fn init() -> (Timer, I2CPeriph) {
         &mut pac.RESETS,
     );
 
-    let mut i2c_ctrl = AsyncI2C::new(
+    let mut i2c_ctrl = I2c::new(
         pac.I2C1,
         pins.gpio14.into_mode(),
         pins.gpio15.into_mode(),

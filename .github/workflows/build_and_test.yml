@@ -1,0 +1,90 @@
+on: [push, pull_request]
+name: Build and Test check
+jobs:
+  tests:
+    name: Build checks
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        mode: ["", "--release"]
+        embedded_graphics: ["", "embedded-graphics"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          target: thumbv6m-none-eabi
+          override: true
+          profile: minimal
+      - name: Prepare "features" arg
+        if: matrix.embedded_graphics != ''
+        run: |
+          echo "features=--features ${{ matrix.embedded_graphics }}" >> $GITHUB_ENV
+
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --tests --target x86_64-unknown-linux-gnu ${{ env.features }}
+      - name: Test docs
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --doc --target x86_64-unknown-linux-gnu ${{ env.features }}
+      - name: Clean
+        uses: actions-rs/cargo@v1
+        with:
+          command: clean
+      - name: Check unused deps
+        uses: aig787/cargo-udeps-action@v1
+        with:
+          version: latest
+          args: ${{ matrix.mode }} --workspace ${{ env.features }}
+
+  builds:
+    name: Build checks
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        mode: ["", "--release"]
+        board: ["", "pico-explorer", "pico-explorer-pio", "pico-explorer-minimal", "rpi-pico", "promicro"]
+        embedded_graphics: ["", "embedded-graphics"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          target: thumbv6m-none-eabi
+          override: true
+          profile: minimal
+
+      - name: Prepare "features" arg
+        if: matrix.embedded_graphics != '' && matrix.board != ''
+        run: |
+          echo "features=--features ${{ matrix.board }},${{ matrix.embedded_graphics }}" >> $GITHUB_ENV
+      - name: Prepare "features" arg
+        if: matrix.embedded_graphics == '' && matrix.board != ''
+        run: |
+          echo "features=--features ${{ matrix.board }}" >> $GITHUB_ENV
+      - name: Prepare "features" arg
+        if: matrix.embedded_graphics != '' && matrix.board == ''
+        run: |
+          echo "features=--features ${{ matrix.embedded_graphics }}" >> $GITHUB_ENV
+
+      - name: Build workspace
+        if: matrix.board == ''
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: ${{ matrix.mode }} --workspace ${{ env.features }}
+      - name: Build workspace and examples
+        if: matrix.board != ''
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: ${{ matrix.mode }} --workspace --examples ${{ env.features }}
+
+      - name: List built examples and clean
+        if: matrix.board != ''
+        run: rm -vrf target/thumbv6m-none-eabi/*/examples/* | sed -e "s/removed '\(.*\)'/\1/" | xargs -l basename | grep -Ev '(-|\.d)'
+

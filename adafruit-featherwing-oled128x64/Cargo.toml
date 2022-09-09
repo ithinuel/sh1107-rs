@@ -10,7 +10,6 @@ repository = "https://github.com/ithinuel/sh1107-rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-arrayvec = { version =  "0.7.2", default-features = false, optional = true }
 cfg-if = "1"
 embedded-graphics = { version = "0.7.1", optional = true }
 embedded-hal = { version = "1.0.0-alpha.8", optional = true }
@@ -30,6 +29,7 @@ pico-explorer-pio-boilerplate = { path = "../pico-explorer-pio-boilerplate" }
 pico-explorer-minimal-boilerplate = { path = "../pico-explorer-minimal-boilerplate" }
 rpi-pico-boilerplate = { path = "../rpi-pico-boilerplate" }
 
+arrayvec = { version =  "0.7.2", default-features = false }
 nostd_async = { version = "0.6.0", features = ["cortex_m"] }
 defmt = "0.3.2"
 defmt-rtt = "0.3.2"
@@ -42,7 +42,7 @@ pico-explorer = []
 pico-explorer-pio = []
 pico-explorer-minimal = []
 rpi-pico = []
-embedded-graphics = ["dep:embedded-graphics", "embedded-hal", "itertools", "arrayvec"]
+embedded-graphics = ["dep:embedded-graphics", "embedded-hal", "itertools"]
 
 [[example]]
 name = "embedded-graphics"

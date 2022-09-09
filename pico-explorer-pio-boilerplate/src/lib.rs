@@ -28,48 +28,16 @@ use hal::{
     Clock,
 };
 
-use rp2040_async_i2c::pio::I2c;
+use rp2040_async_i2c::pio::I2C;
 
 pub use embedded_hal_async::i2c::SevenBitAddress;
 pub use hal::timer::Timer;
 pub use pimoroni_pico_explorer::entry;
 
-type I2CPeriphInner = I2c<'static, PIO0, SM0, bank0::Gpio20, bank0::Gpio21>;
+type I2CPeriphInner = I2C<'static, PIO0, SM0, bank0::Gpio20, bank0::Gpio21>;
 
 pub struct I2CPeriph(I2CPeriphInner);
-impl Deref for I2CPeriph {
-    type Target = I2CPeriphInner;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl DerefMut for I2CPeriph {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-impl ErrorType for I2CPeriph {
-    type Error = <I2CPeriphInner as ErrorType>::Error;
-}
-impl sh1107::WriteIter<SevenBitAddress> for I2CPeriph {
-    type WriteIterFuture<'a, U>
-    = impl Future<Output = Result<(), Self::Error>> + 'a
-    where
-        Self: 'a,
-        U: 'a;
-
-    fn write_iter<'a, U>(
-        &'a mut self,
-        address: SevenBitAddress,
-        bytes: U,
-    ) -> Self::WriteIterFuture<'a, U>
-    where
-        U: IntoIterator<Item = u8> + 'a,
-    {
-        self.0.write_iter(address, bytes)
-    }
-}
+sh1107::impl_write_iter!(I2CPeriph => I2CPeriphInner: write_iter);
 
 type Alarm0WakerCTX = (Alarm0, Option<Waker>);
 static ALARM0_WAKER: Mutex<RefCell<Option<Alarm0WakerCTX>>> = Mutex::new(RefCell::new(None));
@@ -192,7 +160,7 @@ pub fn init() -> (Timer, I2CPeriph) {
     let (pio0, pio0sm0, ..) = pac.PIO0.split(&mut pac.RESETS);
     unsafe { PIO = Some(pio0) };
 
-    let mut i2c_ctrl = I2c::new(
+    let mut i2c_ctrl = I2C::new(
         unsafe { PIO.as_mut().unwrap() },
         pins.i2c_sda.into_pull_up_disabled(),
         pins.i2c_scl.into_pull_up_disabled(),

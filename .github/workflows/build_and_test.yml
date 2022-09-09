@@ -2,11 +2,10 @@ on: [push, pull_request]
 name: Build and Test check
 jobs:
   tests:
-    name: Build checks
+    name: Test checks
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        mode: ["", "--release"]
         embedded_graphics: ["", "embedded-graphics"]
     steps:
       - uses: actions/checkout@v2
@@ -39,7 +38,7 @@ jobs:
         uses: aig787/cargo-udeps-action@v1
         with:
           version: latest
-          args: ${{ matrix.mode }} --workspace ${{ env.features }}
+          args: --workspace ${{ env.features }}
 
   builds:
     name: Build checks

@@ -24,13 +24,13 @@ use hal::{
     Clock,
 };
 
-use rp2040_async_i2c::I2c;
+use rp2040_async_i2c::i2c::I2C;
 
 pub use embedded_hal_async::i2c::SevenBitAddress;
 pub use hal::timer::Timer;
 pub use sparkfun_pro_micro_rp2040::entry;
 
-type I2CPeriphInner = I2c<
+type I2CPeriphInner = I2C<
     pac::I2C0,
     (
         Pin<bank0::Gpio16, FunctionI2C>,
@@ -160,7 +160,7 @@ pub fn init() -> (Timer, I2CPeriph) {
         &mut pac.RESETS,
     );
 
-    let mut i2c_ctrl = I2c::new(
+    let mut i2c_ctrl = I2C::new(
         pac.I2C0,
         pins.sda.into_mode(),
         pins.scl.into_mode(),

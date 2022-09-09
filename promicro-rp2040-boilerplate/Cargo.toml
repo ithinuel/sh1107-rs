@@ -12,6 +12,6 @@ embedded-hal-async = "0.1.0-alpha.1"
 fugit = "0.3.6"
 futures = { version = "0.3.24", default-features = false }
 panic-probe = "0.3.0"
-rp2040-async-i2c = { git = "https://github.com/ithinuel/rp2040-async-i2c" }
+rp2040-async-i2c = { git = "https://github.com/ithinuel/rp2040-async-i2c", rev = "db95764ad1cf5a6003c4763fbbd84f082e62b7c7" }
 sh1107 = { version = "0.1.0", path = "../sh1107" }
 sparkfun-pro-micro-rp2040 = "0.4.0"

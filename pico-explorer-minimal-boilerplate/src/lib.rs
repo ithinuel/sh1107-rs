@@ -21,13 +21,13 @@ use hal::{
     Clock,
 };
 
-use rp2040_async_i2c::I2c;
+use rp2040_async_i2c::i2c::I2C;
 
 pub use embedded_hal_async::i2c::SevenBitAddress;
 pub use hal::timer::Timer;
 pub use pimoroni_pico_explorer::entry;
 
-type I2CPeriphInner = I2c<
+type I2CPeriphInner = I2C<
     pac::I2C0,
     (
         Pin<bank0::Gpio20, FunctionI2C>,
@@ -82,7 +82,7 @@ pub fn init() -> (Timer, I2CPeriph) {
         &mut pac.RESETS,
     );
 
-    let i2c_ctrl = I2c::new(
+    let i2c_ctrl = I2C::new(
         pac.I2C0,
         pins.i2c_sda.into_mode(),
         pins.i2c_scl.into_mode(),

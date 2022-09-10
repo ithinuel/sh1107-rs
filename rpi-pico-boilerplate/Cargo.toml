@@ -1,10 +1,9 @@
 [package]
-
 name = "rpi-pico-boilerplate"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+# demo crate, not meant to be published
+publish = false
 
 [dependencies]
 critical-section = "1.1.0"
@@ -14,5 +13,5 @@ fugit = "0.3.6"
 futures = { version = "0.3.24", default-features = false  }
 panic-probe = { version = "0.3.0", features = ["print-defmt"] }
 rp-pico = "0.5.0"
-rp2040-async-i2c = { git = "https://github.com/ithinuel/rp2040-async-i2c", rev = "5c404ac0a034c5c56d4220f692e7c60755a9a40e" }
+rp2040-async-i2c = { git = "https://github.com/ithinuel/rp2040-async-i2c", rev = "ce573d39a1761c32164d19fd90f0419c203ad23f" }
 sh1107 = { version = "0.1.0", path = "../sh1107" }

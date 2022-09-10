@@ -7,10 +7,7 @@ description = "Driver for Adafruit FeatherWing OLED 128x64 display"
 homepage = "https://github.com/ithinuel/sh1107-rs"
 repository = "https://github.com/ithinuel/sh1107-rs"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-cfg-if = "1"
 embedded-graphics = { version = "0.7.1", optional = true }
 embedded-hal = { version = "1.0.0-alpha.8", optional = true }
 embedded-hal-async = "0.1.0-alpha.1"
@@ -18,6 +15,8 @@ itertools = { version = "0.10.3", default-features = false, optional = true }
 sh1107 = { version = "0.1.0", path = "../sh1107" }
 
 [dev-dependencies]
+cfg-if = "1"
+
 cortex-m = "0.7.6"
 cortex-m-rt = "0.7"
 

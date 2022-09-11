@@ -165,7 +165,7 @@ pub fn init() -> (Timer, I2CPeriph) {
         pins.i2c_sda.into_pull_up_disabled(),
         pins.i2c_scl.into_pull_up_disabled(),
         pio0sm0,
-        800_000.Hz(),
+        400_000.Hz(),
         clocks.system_clock.freq(),
     );
     i2c_ctrl.set_waker_setter(waker_setter);

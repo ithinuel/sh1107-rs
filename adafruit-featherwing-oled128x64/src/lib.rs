@@ -314,7 +314,7 @@ mod embedded_graphics {
 
     impl<T, const ADDRESS: SevenBitAddress> Dimensions for BufferedDisplay<T, ADDRESS> {
         fn bounding_box(&self) -> Rectangle {
-            Rectangle::new(Point::new(0, 0), Size::new(128, 64))
+            Rectangle::new(Point::new(0, 0), Size::new(64, 128))
         }
     }
 

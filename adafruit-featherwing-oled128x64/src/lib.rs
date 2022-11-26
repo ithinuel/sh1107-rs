@@ -93,6 +93,23 @@ where
     pub async fn set_contrast(&mut self, contrast: u8) -> Result<(), T::Error> {
         self.0.run([Command::SetContrastControl(contrast)]).await
     }
+    pub async fn flip_horizontal(&mut self, flip: bool) -> Result<(), T::Error> {
+        let commands = if flip {
+            [
+                Command::SetCOMScanDirection(Direction::Inverted),
+                Command::SetDisplayOffset(32),
+            ]
+        } else {
+            [
+                Command::SetCOMScanDirection(Direction::Normal),
+                Command::SetDisplayOffset(96),
+            ]
+        };
+        self.0.run(commands).await
+    }
+    pub async fn flip_vertical(&mut self, flip: bool) -> Result<(), T::Error> {
+        self.0.run([Command::SetSegmentReMap(flip)]).await
+    }
 
     pub async fn write_frame_by_column(
         &mut self,

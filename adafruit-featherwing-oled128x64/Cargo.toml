@@ -9,8 +9,8 @@ repository = "https://github.com/ithinuel/sh1107-rs"
 
 [dependencies]
 embedded-graphics = { version = "0.7.1", optional = true }
-embedded-hal = { version = "1.0.0-alpha.8", optional = true }
-embedded-hal-async = "0.1.0-alpha.1"
+embedded-hal = { version = "1.0.0-alpha.9", optional = true }
+embedded-hal-async = "0.2.0-alpha.0"
 itertools = { version = "0.10.3", default-features = false, optional = true }
 sh1107 = { version = "0.1.0", path = "../sh1107" }
 

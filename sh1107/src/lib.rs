@@ -1,5 +1,6 @@
 #![no_std]
-#![feature(generic_associated_types)]
+#![allow(incomplete_features)]
+#![feature(async_fn_in_trait)]
 //! See the [datasheet](https://www.displayfuture.com/Display/datasheet/controller/SH1107.pdf) for
 //! further details
 
@@ -9,18 +10,11 @@ use core::{
 };
 
 use embedded_hal_async::i2c::{AddressMode as I2CAddressMode, ErrorType, I2c, SevenBitAddress};
-use futures::Future;
 use itertools::Itertools;
 
 pub trait WriteIter<A: I2CAddressMode>: ErrorType {
-    /// Future returned by the `write_iter` method.
-    type WriteIterFuture<'a, U>: Future<Output = Result<(), Self::Error>> + 'a
-    where
-        Self: 'a,
-        U: 'a;
-
     /// Writes bytes obtained form the iterator.
-    fn write_iter<'a, U>(&'a mut self, address: A, bytes: U) -> Self::WriteIterFuture<'a, U>
+    async fn write_iter<'a, U>(&'a mut self, address: A, bytes: U) -> Result<(), Self::Error>
     where
         U: IntoIterator<Item = u8> + 'a;
 }
@@ -255,17 +249,15 @@ macro_rules! impl_write_iter {
             type Error = <$inner as ErrorType>::Error;
         }
         impl sh1107::WriteIter<SevenBitAddress> for I2CPeriph {
-            type WriteIterFuture<'a, U>= impl Future<Output = Result<(), Self::Error>> + 'a where Self: 'a, U: 'a;
-
-            fn write_iter<'a, U>(
+            async fn write_iter<'a, U>(
                 &'a mut self,
                 address: SevenBitAddress,
                 bytes: U,
-            ) -> Self::WriteIterFuture<'a, U>
+            ) -> Result<(), Self::Error>
             where
                 U: IntoIterator<Item = u8> + 'a,
             {
-                self.0.$method(address, bytes)
+                self.0.$method(address, bytes).await
             }
         }
     };

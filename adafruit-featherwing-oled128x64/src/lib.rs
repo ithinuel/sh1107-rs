@@ -1,4 +1,6 @@
 #![no_std]
+#![allow(incomplete_features)]
+#![feature(async_fn_in_trait)]
 
 use core::ops::Deref;
 use core::ops::DerefMut;
@@ -111,7 +113,7 @@ where
                             match dest {
                                 Destination::Frame1 => 0,
                                 Destination::Frame2 => 64,
-                            } + (col as u8),
+                            } + col,
                         ),
                         Command::SetPageAddress(0),
                     ],
@@ -139,7 +141,7 @@ where
                             Destination::Frame1 => 0,
                             Destination::Frame2 => 64,
                         }),
-                        Command::SetPageAddress(page as u8),
+                        Command::SetPageAddress(page),
                     ],
                     buf.take(COLUMN.into()),
                 )

@@ -10,6 +10,6 @@ repository = "https://github.com/ithinuel/sh1107-rs"
 [dependencies]
 either = { version = "1.8.0", default-features = false }
 itertools = { version = "0.10.3", default-features = false }
-embedded-hal-async = "0.1.0-alpha.1"
+embedded-hal-async = "0.2.0-alpha.0"
 futures = { version = "0.3.24", default-features = false }
 defmt = { version = "0.3.2", optional = true }

@@ -1,6 +1,6 @@
 #![no_std]
-#![feature(type_alias_impl_trait)]
-#![feature(generic_associated_types)]
+#![allow(incomplete_features)]
+#![feature(async_fn_in_trait)]
 
 use core::{
     cell::RefCell,

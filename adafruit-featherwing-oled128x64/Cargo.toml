@@ -20,7 +20,7 @@ cfg-if = "1"
 cortex-m = "0.7.6"
 cortex-m-rt = "0.7"
 
-embedded-hal = { version = "1.0.0-alpha.8" }
+embedded-hal = { version = "1.0.0-alpha.9" }
 
 promicro-rp2040-boilerplate = { path = "../promicro-rp2040-boilerplate" }
 pico-explorer-boilerplate = { path = "../pico-explorer-boilerplate" }

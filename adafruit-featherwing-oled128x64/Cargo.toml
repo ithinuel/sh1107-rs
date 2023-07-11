@@ -9,8 +9,8 @@ repository = "https://github.com/ithinuel/sh1107-rs"
 
 [dependencies]
 embedded-graphics = { version = "0.7.1", optional = true }
-embedded-hal = { version = "1.0.0-alpha.9", optional = true }
-embedded-hal-async = "0.2.0-alpha.0"
+embedded-hal = { version = "1.0.0-alpha.11", optional = true }
+embedded-hal-async = "0.2.0-alpha.2"
 itertools = { version = "0.10.3", default-features = false, optional = true }
 sh1107 = { version = "0.1.0", path = "../sh1107" }
 
@@ -20,7 +20,7 @@ cfg-if = "1"
 cortex-m = "0.7.6"
 cortex-m-rt = "0.7"
 
-embedded-hal = { version = "1.0.0-alpha.9" }
+embedded-hal = { version = "1.0.0-alpha.11" }
 
 promicro-rp2040-boilerplate = { path = "../promicro-rp2040-boilerplate" }
 pico-explorer-boilerplate = { path = "../pico-explorer-boilerplate" }

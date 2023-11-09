@@ -1,6 +1,4 @@
 #![no_std]
-#![allow(incomplete_features)]
-#![feature(async_fn_in_trait)]
 //! See the [datasheet](https://www.displayfuture.com/Display/datasheet/controller/SH1107.pdf) for
 //! further details
 
@@ -14,7 +12,11 @@ use itertools::Itertools;
 
 pub trait WriteIter<A: I2CAddressMode>: ErrorType {
     /// Writes bytes obtained form the iterator.
-    async fn write_iter<'a, U>(&'a mut self, address: A, bytes: U) -> Result<(), Self::Error>
+    fn write_iter<'a, U>(
+        &'a mut self,
+        address: A,
+        bytes: U,
+    ) -> impl core::future::Future<Output = Result<(), Self::Error>>
     where
         U: IntoIterator<Item = u8> + 'a;
 }

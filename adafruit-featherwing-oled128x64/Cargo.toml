@@ -8,19 +8,19 @@ homepage = "https://github.com/ithinuel/sh1107-rs"
 repository = "https://github.com/ithinuel/sh1107-rs"
 
 [dependencies]
-embedded-graphics = { version = "0.7.1", optional = true }
-embedded-hal = { version = "1.0.0-alpha.11", optional = true }
-embedded-hal-async = "0.2.0-alpha.2"
-itertools = { version = "0.10.3", default-features = false, optional = true }
+embedded-graphics = { version = "0.8.1", optional = true }
+embedded-hal = { version = "1.0.0-rc.1", optional = true }
+embedded-hal-async = "1.0.0-rc.1"
+itertools = { version = "0.11.0", default-features = false, optional = true }
 sh1107 = { version = "0.1.0", path = "../sh1107" }
 
 [dev-dependencies]
 cfg-if = "1"
 
-cortex-m = "0.7.6"
+cortex-m = "0.7.7"
 cortex-m-rt = "0.7"
 
-embedded-hal = { version = "1.0.0-alpha.11" }
+embedded-hal = { version = "1.0.0-rc.1" }
 
 promicro-rp2040-boilerplate = { path = "../promicro-rp2040-boilerplate" }
 pico-explorer-boilerplate = { path = "../pico-explorer-boilerplate" }
@@ -28,12 +28,14 @@ pico-explorer-pio-boilerplate = { path = "../pico-explorer-pio-boilerplate" }
 pico-explorer-minimal-boilerplate = { path = "../pico-explorer-minimal-boilerplate" }
 rpi-pico-boilerplate = { path = "../rpi-pico-boilerplate" }
 
-arrayvec = { version =  "0.7.2", default-features = false }
-nostd_async = { version = "0.6.0", features = ["cortex_m"] }
-defmt = "0.3.2"
-defmt-rtt = "0.3.2"
+arrayvec = { version = "0.7.4", default-features = false }
+nostd_async = { version = "0.6.1", features = ["cortex_m"] }
+defmt = "0.3.5"
+defmt-rtt = "0.4.0"
 
-futures = { version = "0.3.24", default-features = false, features = [ "async-await" ] }
+futures = { version = "0.3.29", default-features = false, features = [
+  "async-await",
+] }
 
 [features]
 promicro = []

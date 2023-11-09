@@ -1,6 +1,4 @@
 #![no_std]
-#![allow(incomplete_features)]
-#![feature(async_fn_in_trait)]
 
 use core::{
     cell::RefCell,
@@ -16,7 +14,7 @@ use panic_probe as _;
 use rp_pico::{hal, Pins};
 
 use hal::{
-    gpio::{bank0, FunctionI2C, Pin},
+    gpio::{bank0, FunctionI2C, Pin, PullUp},
     pac::{self, interrupt},
     sio::Sio,
     timer::{Alarm, Alarm0},
@@ -33,8 +31,8 @@ pub use rp_pico::entry;
 type I2CPeriphInner = I2C<
     pac::I2C1,
     (
-        Pin<bank0::Gpio14, FunctionI2C>,
-        Pin<bank0::Gpio15, FunctionI2C>,
+        Pin<bank0::Gpio14, FunctionI2C, PullUp>,
+        Pin<bank0::Gpio15, FunctionI2C, PullUp>,
     ),
 >;
 
@@ -149,7 +147,7 @@ pub fn init() -> (Timer, I2CPeriph) {
     .ok()
     .unwrap();
 
-    let mut timer = Timer::new(pac.TIMER, &mut pac.RESETS);
+    let mut timer = Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
     let alarm = timer.alarm_0().unwrap();
 
     let sio = Sio::new(pac.SIO);
@@ -162,8 +160,8 @@ pub fn init() -> (Timer, I2CPeriph) {
 
     let mut i2c_ctrl = I2C::new(
         pac.I2C1,
-        pins.gpio14.into_mode(),
-        pins.gpio15.into_mode(),
+        pins.gpio14.reconfigure(),
+        pins.gpio15.reconfigure(),
         400_000.Hz(),
         &mut pac.RESETS,
         clocks.system_clock.freq(),

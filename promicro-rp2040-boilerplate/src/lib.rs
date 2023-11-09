@@ -1,6 +1,4 @@
 #![no_std]
-#![allow(incomplete_features)]
-#![feature(async_fn_in_trait)]
 
 use core::{
     cell::RefCell,
@@ -16,7 +14,7 @@ use panic_probe as _;
 use sparkfun_pro_micro_rp2040::{hal, Pins};
 
 use hal::{
-    gpio::{bank0, FunctionI2C, Pin},
+    gpio::{bank0, FunctionI2C, Pin, PullUp},
     pac::{self, interrupt},
     sio::Sio,
     timer::{Alarm, Alarm0},
@@ -33,8 +31,8 @@ pub use sparkfun_pro_micro_rp2040::entry;
 type I2CPeriphInner = I2C<
     pac::I2C0,
     (
-        Pin<bank0::Gpio16, FunctionI2C>,
-        Pin<bank0::Gpio17, FunctionI2C>,
+        Pin<bank0::Gpio16, FunctionI2C, PullUp>,
+        Pin<bank0::Gpio17, FunctionI2C, PullUp>,
     ),
 >;
 
@@ -149,7 +147,7 @@ pub fn init() -> (Timer, I2CPeriph) {
     .ok()
     .unwrap();
 
-    let mut timer = Timer::new(pac.TIMER, &mut pac.RESETS);
+    let mut timer = Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
     let alarm = timer.alarm_0().unwrap();
 
     let sio = Sio::new(pac.SIO);
@@ -162,8 +160,8 @@ pub fn init() -> (Timer, I2CPeriph) {
 
     let mut i2c_ctrl = I2C::new(
         pac.I2C0,
-        pins.sda.into_mode(),
-        pins.scl.into_mode(),
+        pins.sda.reconfigure(),
+        pins.scl.reconfigure(),
         400_000.Hz(),
         &mut pac.RESETS,
         clocks.system_clock.freq(),

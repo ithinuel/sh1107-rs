@@ -1,6 +1,4 @@
 #![no_std]
-#![allow(incomplete_features)]
-#![feature(async_fn_in_trait)]
 
 use core::{
     cell::RefCell,
@@ -15,7 +13,12 @@ use futures::{future, Future};
 use panic_probe as _;
 use pimoroni_pico_explorer::{
     all_pins::Pins,
-    hal::{self, pio::SM0, prelude::_rphal_pio_PIOExt},
+    hal::{
+        self,
+        gpio::{FunctionNull, PullUp, Pin},
+        pio::PIOExt,
+        pio::SM0,
+    },
     pac::PIO0,
 };
 
@@ -34,7 +37,13 @@ pub use embedded_hal_async::i2c::SevenBitAddress;
 pub use hal::timer::Timer;
 pub use pimoroni_pico_explorer::entry;
 
-type I2CPeriphInner = I2C<'static, PIO0, SM0, bank0::Gpio20, bank0::Gpio21>;
+type I2CPeriphInner = I2C<
+    'static,
+    PIO0,
+    SM0,
+    Pin<bank0::Gpio20, FunctionNull, PullUp>,
+    Pin<bank0::Gpio21, FunctionNull, PullUp>,
+>;
 
 pub struct I2CPeriph(I2CPeriphInner);
 sh1107::impl_write_iter!(I2CPeriph => I2CPeriphInner: write_iter);
@@ -146,7 +155,7 @@ pub fn init() -> (Timer, I2CPeriph) {
     .ok()
     .unwrap();
 
-    let mut timer = Timer::new(pac.TIMER, &mut pac.RESETS);
+    let mut timer = Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
     let alarm = timer.alarm_0().unwrap();
 
     let sio = Sio::new(pac.SIO);

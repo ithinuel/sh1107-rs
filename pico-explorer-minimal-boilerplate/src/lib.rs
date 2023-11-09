@@ -1,6 +1,4 @@
 #![no_std]
-#![allow(incomplete_features)]
-#![feature(async_fn_in_trait)]
 
 use core::{
     ops::{Deref, DerefMut},
@@ -14,7 +12,7 @@ use panic_probe as _;
 use pimoroni_pico_explorer::{all_pins::Pins, hal};
 
 use hal::{
-    gpio::{bank0, FunctionI2C, Pin},
+    gpio::{bank0, FunctionI2C, Pin, PullUp},
     pac,
     sio::Sio,
     watchdog::Watchdog,
@@ -30,8 +28,8 @@ pub use pimoroni_pico_explorer::entry;
 type I2CPeriphInner = I2C<
     pac::I2C0,
     (
-        Pin<bank0::Gpio20, FunctionI2C>,
-        Pin<bank0::Gpio21, FunctionI2C>,
+        Pin<bank0::Gpio20, FunctionI2C, PullUp>,
+        Pin<bank0::Gpio21, FunctionI2C, PullUp>,
     ),
 >;
 
@@ -72,7 +70,7 @@ pub fn init() -> (Timer, I2CPeriph) {
     .ok()
     .unwrap();
 
-    let timer = Timer::new(pac.TIMER, &mut pac.RESETS);
+    let timer = Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
 
     let sio = Sio::new(pac.SIO);
     let pins = Pins::new(
@@ -84,8 +82,8 @@ pub fn init() -> (Timer, I2CPeriph) {
 
     let i2c_ctrl = I2C::new(
         pac.I2C0,
-        pins.i2c_sda.into_mode(),
-        pins.i2c_scl.into_mode(),
+        pins.i2c_sda.reconfigure(),
+        pins.i2c_scl.reconfigure(),
         400_000.Hz(),
         &mut pac.RESETS,
         clocks.system_clock.freq(),

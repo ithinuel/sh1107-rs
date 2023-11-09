@@ -1,6 +1,4 @@
 #![no_std]
-#![allow(incomplete_features)]
-#![feature(async_fn_in_trait)]
 
 use core::ops::Deref;
 use core::ops::DerefMut;
@@ -215,7 +213,6 @@ mod embedded_graphics {
     use super::SevenBitAddress;
     use embedded_graphics::pixelcolor::BinaryColor;
     use embedded_graphics::prelude::*;
-    use embedded_graphics::primitives::Rectangle;
     use itertools::Itertools;
     use sh1107::AddressMode;
     use sh1107::Command;
@@ -331,9 +328,9 @@ mod embedded_graphics {
         }
     }
 
-    impl<T, const ADDRESS: SevenBitAddress> Dimensions for BufferedDisplay<T, ADDRESS> {
-        fn bounding_box(&self) -> Rectangle {
-            Rectangle::new(Point::new(0, 0), Size::new(64, 128))
+    impl<T, const ADDRESS: SevenBitAddress> OriginDimensions for BufferedDisplay<T, ADDRESS> {
+        fn size(&self) -> Size {
+            Size::new(64, 128)
         }
     }
 

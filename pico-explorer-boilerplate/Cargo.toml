@@ -6,12 +6,14 @@ edition = "2021"
 publish = false
 
 [dependencies]
-critical-section = "1.1.0"
-defmt = "0.3.2"
-embedded-hal-async = "0.2.0-alpha.0"
-fugit = "0.3.6"
-futures = { version = "0.3.24", default-features = false  }
-panic-probe = { version = "0.3.0", features = ["print-defmt"] }
-pimoroni-pico-explorer = "0.4.0"
-rp2040-async-i2c = { git = "https://github.com/ithinuel/rp2040-async-i2c", rev = "123a72c703efe6569f5c7e619f922b5221a93271", features = ["pio"] }
+critical-section = "1.1.2"
+defmt = "0.3.5"
+embedded-hal-async = "1.0.0-rc.1"
+fugit = "0.3.7"
+futures = { version = "0.3.29", default-features = false }
+panic-probe = { version = "0.3.1", features = ["print-defmt"] }
+pimoroni-pico-explorer = "0.7.0"
+rp2040-async-i2c = { git = "https://github.com/ithinuel/rp2040-async-i2c", features = [
+  "pio",
+] }
 sh1107 = { version = "0.1.0", path = "../sh1107" }

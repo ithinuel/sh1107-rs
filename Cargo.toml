@@ -3,11 +3,6 @@ resolver = "2"
 members = [
   "adafruit-featherwing-oled128x64",
   "sh1107",
-  "promicro-rp2040-boilerplate",
-  "pico-explorer-boilerplate",
-  "pico-explorer-pio-boilerplate",
-  "pico-explorer-minimal-boilerplate",
-  "rpi-pico-boilerplate",
 ]
 
 [profile.release]

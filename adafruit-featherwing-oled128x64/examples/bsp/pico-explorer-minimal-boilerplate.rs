@@ -1,11 +1,5 @@
-#![no_std]
+use core::task::Poll;
 
-use core::{
-    ops::{Deref, DerefMut},
-    task::Poll,
-};
-
-use embedded_hal_async::i2c::ErrorType;
 use fugit::{ExtU32, RateExtU32};
 use futures::{future, Future};
 use panic_probe as _;

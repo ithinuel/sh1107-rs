@@ -1,21 +1,7 @@
 #![no_std]
 #![no_main]
 
-cfg_if::cfg_if! {
-    if #[cfg(feature = "pico-explorer")] {
-        use pico_explorer_boilerplate as bsp;
-    } else if #[cfg(feature = "pico-explorer-pio")] {
-        use pico_explorer_pio_boilerplate as bsp;
-    } else if #[cfg(feature = "pico-explorer-minimal")] {
-        use pico_explorer_minimal_boilerplate as bsp;
-    } else if #[cfg(feature = "promicro")] {
-        use promicro_rp2040_boilerplate as bsp;
-    } else if #[cfg(feature = "rpi-pico")] {
-        use rpi_pico_boilerplate as bsp;
-    } else {
-        compile_error!("One platform feature must be selected");
-    }
-}
+mod bsp;
 
 use adafruit_featherwing_oled128x64::{Destination, Display, DisplayState};
 use defmt_rtt as _;

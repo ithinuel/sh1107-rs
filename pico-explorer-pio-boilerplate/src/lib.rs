@@ -37,16 +37,13 @@ pub use embedded_hal_async::i2c::SevenBitAddress;
 pub use hal::timer::Timer;
 pub use pimoroni_pico_explorer::entry;
 
-type I2CPeriphInner = I2C<
+pub type I2CPeriph = I2C<
     'static,
     PIO0,
     SM0,
     Pin<bank0::Gpio20, FunctionNull, PullUp>,
     Pin<bank0::Gpio21, FunctionNull, PullUp>,
 >;
-
-pub struct I2CPeriph(I2CPeriphInner);
-sh1107::impl_write_iter!(I2CPeriph => I2CPeriphInner: write_iter);
 
 type Alarm0WakerCTX = (Alarm0, Option<Waker>);
 static ALARM0_WAKER: Mutex<RefCell<Option<Alarm0WakerCTX>>> = Mutex::new(RefCell::new(None));
@@ -187,5 +184,5 @@ pub fn init() -> (Timer, I2CPeriph) {
         *ALARM0_WAKER.borrow_ref_mut(cs) = Some((alarm, None));
     });
 
-    (timer, I2CPeriph(i2c_ctrl))
+    (timer, i2c_ctrl)
 }

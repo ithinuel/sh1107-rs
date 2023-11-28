@@ -25,16 +25,13 @@ pub use embedded_hal_async::i2c::SevenBitAddress;
 pub use hal::timer::Timer;
 pub use pimoroni_pico_explorer::entry;
 
-type I2CPeriphInner = I2C<
+pub type I2CPeriph = I2C<
     pac::I2C0,
     (
         Pin<bank0::Gpio20, FunctionI2C, PullUp>,
         Pin<bank0::Gpio21, FunctionI2C, PullUp>,
     ),
 >;
-
-pub struct I2CPeriph(I2CPeriphInner);
-sh1107::impl_write_iter!(I2CPeriph => I2CPeriphInner: write_iter);
 
 pub async fn wait_for(timer: &Timer, delay: u32) {
     let target = timer.get_counter() + delay.micros();
@@ -89,5 +86,5 @@ pub fn init() -> (Timer, I2CPeriph) {
         clocks.system_clock.freq(),
     );
 
-    (timer, I2CPeriph(i2c_ctrl))
+    (timer, i2c_ctrl)
 }

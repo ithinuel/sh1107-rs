@@ -1,10 +1,5 @@
 #![no_std]
 
-use core::ops::Deref;
-use core::ops::DerefMut;
-
-use embedded_hal_async::i2c::ErrorType;
-use embedded_hal_async::i2c::I2c;
 use embedded_hal_async::i2c::SevenBitAddress;
 use sh1107::Direction;
 use sh1107::{AddressMode, Sh1107};
@@ -23,26 +18,11 @@ pub enum Destination {
     Frame2,
 }
 
-pub trait ValidBus:
-    sh1107::WriteIter<SevenBitAddress, Error = <<Self as ValidBus>::I2c as ErrorType>::Error>
-    + Deref<Target = Self::I2c>
-    + DerefMut
-{
-    type I2c: I2c<SevenBitAddress>;
-}
-impl<T, U> ValidBus for T
-where
-    T: sh1107::WriteIter<SevenBitAddress, Error = U::Error> + Deref<Target = U> + DerefMut,
-    U: I2c<SevenBitAddress>,
-{
-    type I2c = U;
-}
-
 pub struct Display<T, const ADDRESS: SevenBitAddress>(Sh1107<T, ADDRESS>);
 
 impl<T, const ADDRESS: SevenBitAddress> Display<T, ADDRESS>
 where
-    T: ValidBus,
+    T: sh1107::WriteIter<SevenBitAddress>,
 {
     pub async fn new(i2c_bus: T) -> Result<Self, (T, T::Error)> {
         let mut sh1107 = Sh1107::new(i2c_bus);
@@ -200,10 +180,6 @@ pub use self::embedded_graphics::BufferedDisplay;
 
 #[cfg(feature = "embedded-graphics")]
 mod embedded_graphics {
-    use core::ops::Deref;
-    use core::ops::DerefMut;
-
-    use crate::ValidBus;
     use crate::COLUMN;
     use crate::PAGE;
     use crate::ROW;
@@ -222,19 +198,24 @@ mod embedded_graphics {
         bitmask: [u8; 128 * 64],
         bitmap: [u8; 128 * 64],
     }
-    impl<T, const ADDRESS: SevenBitAddress> Deref for BufferedDisplay<T, ADDRESS> {
+    impl<T: sh1107::WriteIter<SevenBitAddress>, const ADDRESS: SevenBitAddress> core::ops::Deref
+        for BufferedDisplay<T, ADDRESS>
+    {
         type Target = Display<T, ADDRESS>;
-
-        fn deref(&self) -> &Self::Target {
+        fn deref(&self) -> &Display<T, ADDRESS> {
             &self.display
         }
     }
-    impl<T, const ADDRESS: SevenBitAddress> DerefMut for BufferedDisplay<T, ADDRESS> {
-        fn deref_mut(&mut self) -> &mut Self::Target {
+    impl<T: sh1107::WriteIter<SevenBitAddress>, const ADDRESS: SevenBitAddress> core::ops::DerefMut
+        for BufferedDisplay<T, ADDRESS>
+    {
+        fn deref_mut(&mut self) -> &mut Display<T, ADDRESS> {
             &mut self.display
         }
     }
-    impl<T: ValidBus, const ADDRESS: SevenBitAddress> BufferedDisplay<T, ADDRESS> {
+    impl<T: sh1107::WriteIter<SevenBitAddress>, const ADDRESS: SevenBitAddress>
+        BufferedDisplay<T, ADDRESS>
+    {
         pub async fn new(i2c_bus: T) -> Result<Self, (T, T::Error)> {
             // on startup the whole display is considered dirty
             Ok(Self {

@@ -2,24 +2,11 @@
 //! See the [datasheet](https://www.displayfuture.com/Display/datasheet/controller/SH1107.pdf) for
 //! further details
 
-use core::{
-    iter::once,
-    ops::{Deref, DerefMut},
-};
+use core::iter::once;
 
-use embedded_hal_async::i2c::{AddressMode as I2CAddressMode, ErrorType, I2c, SevenBitAddress};
+use embedded_hal_async::i2c::SevenBitAddress;
+pub use i2c_write_iter::non_blocking::WriteIter;
 use itertools::Itertools;
-
-pub trait WriteIter<A: I2CAddressMode>: ErrorType {
-    /// Writes bytes obtained form the iterator.
-    fn write_iter<'a, U>(
-        &'a mut self,
-        address: A,
-        bytes: U,
-    ) -> impl core::future::Future<Output = Result<(), Self::Error>>
-    where
-        U: IntoIterator<Item = u8> + 'a;
-}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -164,16 +151,18 @@ impl Command {
 
 pub struct Sh1107<T, const ADDRESS: SevenBitAddress>(T);
 
-impl<T, U, V, const ADDRESS: SevenBitAddress> Sh1107<T, ADDRESS>
+impl<T, const ADDRESS: SevenBitAddress> Sh1107<T, ADDRESS>
 where
-    T: WriteIter<SevenBitAddress, Error = V> + Deref<Target = U> + DerefMut,
-    U: I2c<SevenBitAddress, Error = V>,
+    T: WriteIter<SevenBitAddress>,
 {
     pub fn new(i2c: T) -> Self {
         Self(i2c)
     }
 
-    pub async fn run(&mut self, commands: impl IntoIterator<Item = Command>) -> Result<(), V> {
+    pub async fn run(
+        &mut self,
+        commands: impl IntoIterator<Item = Command>,
+    ) -> Result<(), T::Error> {
         self.0
             .write_iter(
                 ADDRESS,
@@ -185,7 +174,7 @@ where
     pub async fn write_to_ram(
         &mut self,
         buf: impl IntoIterator<Item = u8>,
-    ) -> Result<(), <T as ErrorType>::Error> {
+    ) -> Result<(), T::Error> {
         self.0
             .write_iter(
                 ADDRESS, // Write data, no other control byte
@@ -198,7 +187,7 @@ where
         &mut self,
         commands: impl IntoIterator<Item = Command>,
         data: impl IntoIterator<Item = u8>,
-    ) -> Result<(), V> {
+    ) -> Result<(), T::Error> {
         self.0
             .write_iter(
                 ADDRESS,
@@ -214,11 +203,11 @@ where
             .await
     }
 
-    pub async fn read_from_ram(&mut self, buf: &mut [u8]) -> Result<(), V> {
+    pub async fn read_from_ram(&mut self, buf: &mut [u8]) -> Result<(), T::Error> {
         self.0.write_read(ADDRESS, &[0x40], buf).await
     }
 
-    pub async fn is_busy(&mut self) -> Result<bool, V> {
+    pub async fn is_busy(&mut self) -> Result<bool, T::Error> {
         let mut res = 0u8;
         self.0
             .write_read(ADDRESS, &[0x80], core::slice::from_mut(&mut res))
@@ -229,38 +218,4 @@ where
     pub fn release(self) -> T {
         self.0
     }
-}
-
-/// Helper macro to implement Deref, DerefMut and sh1107::WriteIter on a new type.
-#[macro_export]
-macro_rules! impl_write_iter {
-    ($outer:ty => $inner:ty : $method:ident) => {
-        impl Deref for $outer {
-            type Target = $inner;
-
-            fn deref(&self) -> &Self::Target {
-                &self.0
-            }
-        }
-        impl DerefMut for $outer {
-            fn deref_mut(&mut self) -> &mut Self::Target {
-                &mut self.0
-            }
-        }
-        impl ErrorType for $outer {
-            type Error = <$inner as ErrorType>::Error;
-        }
-        impl sh1107::WriteIter<SevenBitAddress> for I2CPeriph {
-            async fn write_iter<'a, U>(
-                &'a mut self,
-                address: SevenBitAddress,
-                bytes: U,
-            ) -> Result<(), Self::Error>
-            where
-                U: IntoIterator<Item = u8> + 'a,
-            {
-                self.0.$method(address, bytes).await
-            }
-        }
-    };
 }

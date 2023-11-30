@@ -8,34 +8,24 @@ jobs:
       matrix:
         embedded_graphics: ["", "embedded-graphics"]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: nightly
           target: thumbv6m-none-eabi
-          override: true
-          profile: minimal
+          toolchain: nightly
       - name: Prepare "features" arg
         if: matrix.embedded_graphics != ''
         run: |
           echo "features=--features ${{ matrix.embedded_graphics }}" >> $GITHUB_ENV
 
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --tests --target x86_64-unknown-linux-gnu ${{ env.features }}
+        run: cargo test --tests --target x86_64-unknown-linux-gnu ${{ env.features }}
       - name: Test docs
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --doc --target x86_64-unknown-linux-gnu ${{ env.features }}
+        run: cargo test --doc --target x86_64-unknown-linux-gnu ${{ env.features }}
       - name: Clean
-        uses: actions-rs/cargo@v1
-        with:
-          command: clean
+        run: cargo clean
       - name: Check unused deps
-        uses: aig787/cargo-udeps-action@v1
+        uses: ithinuel/cargo-udeps-action@v1.1
         with:
           version: latest
           args: --workspace ${{ env.features }}
@@ -49,13 +39,11 @@ jobs:
         board: ["", "pico-explorer", "pico-explorer-pio", "pico-explorer-minimal", "rpi-pico", "promicro"]
         embedded_graphics: ["", "embedded-graphics"]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: nightly
           target: thumbv6m-none-eabi
-          override: true
-          profile: minimal
+          toolchain: nightly
 
       - name: Prepare "features" arg
         if: matrix.embedded_graphics != '' && matrix.board != ''
@@ -72,16 +60,10 @@ jobs:
 
       - name: Build workspace
         if: matrix.board == ''
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: ${{ matrix.mode }} --workspace ${{ env.features }}
+        run: cargo build ${{ matrix.mode }} --workspace ${{ env.features }}
       - name: Build workspace and examples
         if: matrix.board != ''
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: ${{ matrix.mode }} --workspace --examples ${{ env.features }}
+        run: cargo build ${{ matrix.mode }} --workspace --examples ${{ env.features }}
 
       - name: List built examples and clean
         if: matrix.board != ''

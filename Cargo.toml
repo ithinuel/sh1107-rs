@@ -14,5 +14,3 @@ opt-level = 2
 
 [patch.crates-io]
 rp2040-hal = { git = "https://github.com/rp-rs/rp-hal" }
-[patch.'https://github.com/ithinuel/rp2040-async-i2C']
-rp2040-async-i2c = { path = "../rp2040-async-i2c" }

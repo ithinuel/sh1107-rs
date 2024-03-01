@@ -10,6 +10,6 @@ repository = "https://github.com/ithinuel/sh1107-rs"
 [dependencies]
 either = { version = "1.9.0", default-features = false }
 itertools = { version = "0.11.0", default-features = false }
-embedded-hal-async = "1.0.0-rc.1"
-i2c-write-iter = { version = "1.0.0-rc.1.3", features = ["async"] }
+embedded-hal-async = "1.0.0"
+i2c-write-iter = { version = "1.0.0", features = ["async"] }
 defmt = { version = "0.3.5", optional = true }

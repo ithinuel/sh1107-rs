@@ -7,13 +7,12 @@ use pimoroni_pico_explorer::{all_pins::Pins, hal};
 
 use hal::{
     gpio::{bank0, FunctionI2C, Pin, PullUp},
+    i2c::I2C,
     pac,
     sio::Sio,
     watchdog::Watchdog,
     Clock,
 };
-
-use rp2040_async_i2c::i2c::I2C;
 
 pub use embedded_hal_async::i2c::SevenBitAddress;
 pub use hal::timer::Timer;

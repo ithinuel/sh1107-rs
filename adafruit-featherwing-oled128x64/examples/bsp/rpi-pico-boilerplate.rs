@@ -13,8 +13,6 @@ use hal::{
     Clock,
 };
 
-use rp2040_async_i2c::i2c::I2C;
-
 pub use embedded_hal_async::i2c::SevenBitAddress;
 pub use hal::timer::Timer;
 pub use rp_pico::entry;
@@ -30,31 +28,11 @@ pub type I2CPeriph = I2C<
     ),
 >;
 
-static I2C_WAKER: Mutex<RefCell<Option<Waker>>> = Mutex::new(RefCell::new(None));
-pub fn waker_setter(waker: Waker) {
-    critical_section::with(|cs| {
-        *I2C_WAKER.borrow_ref_mut(cs) = Some(waker);
-    });
-}
-
 #[interrupt]
 #[allow(non_snake_case)]
 fn I2C1_IRQ() {
-    critical_section::with(|cs| {
-        let i2c1 = unsafe { &pac::Peripherals::steal().I2C1 };
-        i2c1.ic_intr_mask.modify(|_, w| {
-            w.m_tx_empty()
-                .enabled()
-                .m_rx_full()
-                .enabled()
-                .m_tx_abrt()
-                .enabled()
-        });
-        I2C_WAKER
-            .borrow_ref_mut(cs)
-            .take()
-            .map(|waker| waker.wake())
-    });
+    use hal::async_utils::AsyncPeripheral;
+    I2CPeriph::on_interrupt();
 }
 
 pub fn init() -> (Timer, I2CPeriph) {
@@ -85,7 +63,7 @@ pub fn init() -> (Timer, I2CPeriph) {
         &mut pac.RESETS,
     );
 
-    let mut i2c_ctrl = I2C::new(
+    let i2c_ctrl = I2C::new_controller(
         pac.I2C1,
         pins.gpio14.reconfigure(),
         pins.gpio15.reconfigure(),
@@ -93,7 +71,6 @@ pub fn init() -> (Timer, I2CPeriph) {
         &mut pac.RESETS,
         clocks.system_clock.freq(),
     );
-    i2c_ctrl.set_waker_setter(waker_setter);
 
     critical_section::with(move |cs| unsafe {
         pac::NVIC::unpend(pac::Interrupt::I2C1_IRQ);

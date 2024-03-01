@@ -5,6 +5,8 @@ cfg_if::cfg_if! {
         include!("pico-explorer-pio-boilerplate.rs");
     } else if #[cfg(feature = "pico-explorer-minimal")] {
         include!("pico-explorer-minimal-boilerplate.rs");
+    } else if #[cfg(feature = "promicro-pio")] {
+        include!("promicro-rp2040-pio-boilerplate.rs");
     } else if #[cfg(feature = "promicro")] {
         include!("promicro-rp2040-boilerplate.rs");
     } else if #[cfg(feature = "rpi-pico")] {
@@ -13,4 +15,3 @@ cfg_if::cfg_if! {
         compile_error!("One platform feature must be selected");
     }
 }
-

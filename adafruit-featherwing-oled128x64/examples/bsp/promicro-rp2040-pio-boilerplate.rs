@@ -3,29 +3,20 @@ use core::cell::RefCell;
 use critical_section::Mutex;
 use fugit::RateExtU32;
 use panic_probe as _;
-use pimoroni_pico_explorer::{
-    all_pins::Pins,
-    hal::{
-        self,
-        gpio::{FunctionNull, Pin, PullUp},
-        pio::PIOExt,
-        pio::SM0,
-    },
-    pac::PIO0,
-};
+use rp2040_async_i2c::I2C;
+use sparkfun_pro_micro_rp2040::{hal, Pins};
 
 use hal::{
-    gpio::bank0,
-    pac::{self, interrupt},
+    gpio::{bank0, FunctionI2C, FunctionNull, Pin, PullUp},
+    pac::{self, interrupt, PIO0},
+    pio::{PIOExt, SM0},
     sio::Sio,
     watchdog::Watchdog,
     Clock,
 };
 
-use rp2040_async_i2c::I2C;
-
 pub use embedded_hal_async::i2c::SevenBitAddress;
-pub use pimoroni_pico_explorer::entry;
+pub use sparkfun_pro_micro_rp2040::entry;
 
 mod timer;
 pub use timer::*;
@@ -34,8 +25,8 @@ pub type I2CPeriph = I2C<
     'static,
     PIO0,
     SM0,
-    Pin<bank0::Gpio20, FunctionNull, PullUp>,
-    Pin<bank0::Gpio21, FunctionNull, PullUp>,
+    Pin<bank0::Gpio16, FunctionNull, PullUp>,
+    Pin<bank0::Gpio17, FunctionNull, PullUp>,
 >;
 
 static mut PIO: Option<hal::pio::PIO<PIO0>> = None;
@@ -45,6 +36,7 @@ fn waker_setter(waker: core::task::Waker) {
         PIO_WAKER.borrow_ref_mut(cs).replace(waker);
     });
 }
+
 #[interrupt]
 #[allow(non_snake_case)]
 fn PIO0_IRQ_0() {
@@ -70,7 +62,7 @@ pub fn init() -> (Timer, I2CPeriph) {
 
     let mut watchdog = Watchdog::new(pac.WATCHDOG);
     let clocks = hal::clocks::init_clocks_and_plls(
-        pimoroni_pico_explorer::XOSC_CRYSTAL_FREQ,
+        sparkfun_pro_micro_rp2040::XOSC_CRYSTAL_FREQ,
         pac.XOSC,
         pac.CLOCKS,
         pac.PLL_SYS,
@@ -97,8 +89,8 @@ pub fn init() -> (Timer, I2CPeriph) {
 
     let mut i2c_ctrl = I2C::new(
         unsafe { PIO.as_mut().unwrap() },
-        pins.i2c_sda.into_pull_up_disabled(),
-        pins.i2c_scl.into_pull_up_disabled(),
+        pins.sda.into_pull_up_disabled(),
+        pins.scl.into_pull_up_disabled(),
         pio0sm0,
         400_000.Hz(),
         clocks.system_clock.freq(),

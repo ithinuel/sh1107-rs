@@ -5,7 +5,7 @@
 use core::iter::once;
 
 use embedded_hal_async::i2c::SevenBitAddress;
-pub use i2c_write_iter::non_blocking::WriteIter;
+pub use i2c_write_iter::non_blocking::I2cIter;
 use itertools::Itertools;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -153,7 +153,7 @@ pub struct Sh1107<T, const ADDRESS: SevenBitAddress>(T);
 
 impl<T, const ADDRESS: SevenBitAddress> Sh1107<T, ADDRESS>
 where
-    T: WriteIter<SevenBitAddress>,
+    T: I2cIter<SevenBitAddress>,
 {
     pub fn new(i2c: T) -> Self {
         Self(i2c)

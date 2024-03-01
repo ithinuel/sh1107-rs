@@ -22,7 +22,7 @@ pub struct Display<T, const ADDRESS: SevenBitAddress>(Sh1107<T, ADDRESS>);
 
 impl<T, const ADDRESS: SevenBitAddress> Display<T, ADDRESS>
 where
-    T: sh1107::WriteIter<SevenBitAddress>,
+    T: sh1107::I2cIter<SevenBitAddress>,
 {
     pub async fn new(i2c_bus: T) -> Result<Self, (T, T::Error)> {
         let mut sh1107 = Sh1107::new(i2c_bus);
@@ -198,7 +198,7 @@ mod embedded_graphics {
         bitmask: [u8; 128 * 64],
         bitmap: [u8; 128 * 64],
     }
-    impl<T: sh1107::WriteIter<SevenBitAddress>, const ADDRESS: SevenBitAddress> core::ops::Deref
+    impl<T: sh1107::I2cIter<SevenBitAddress>, const ADDRESS: SevenBitAddress> core::ops::Deref
         for BufferedDisplay<T, ADDRESS>
     {
         type Target = Display<T, ADDRESS>;
@@ -206,14 +206,14 @@ mod embedded_graphics {
             &self.display
         }
     }
-    impl<T: sh1107::WriteIter<SevenBitAddress>, const ADDRESS: SevenBitAddress> core::ops::DerefMut
+    impl<T: sh1107::I2cIter<SevenBitAddress>, const ADDRESS: SevenBitAddress> core::ops::DerefMut
         for BufferedDisplay<T, ADDRESS>
     {
         fn deref_mut(&mut self) -> &mut Display<T, ADDRESS> {
             &mut self.display
         }
     }
-    impl<T: sh1107::WriteIter<SevenBitAddress>, const ADDRESS: SevenBitAddress>
+    impl<T: sh1107::I2cIter<SevenBitAddress>, const ADDRESS: SevenBitAddress>
         BufferedDisplay<T, ADDRESS>
     {
         pub async fn new(i2c_bus: T) -> Result<Self, (T, T::Error)> {

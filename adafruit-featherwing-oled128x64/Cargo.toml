@@ -9,8 +9,8 @@ repository = "https://github.com/ithinuel/sh1107-rs"
 
 [dependencies]
 embedded-graphics = { version = "0.8.1", optional = true }
-embedded-hal = { version = "1.0.0-rc.1", optional = true }
-embedded-hal-async = "1.0.0-rc.1"
+embedded-hal = { version = "1.0.0", optional = true }
+embedded-hal-async = "1.0.0"
 itertools = { version = "0.11.0", default-features = false, optional = true }
 sh1107 = { version = "0.1.0", path = "../sh1107" }
 
@@ -20,10 +20,10 @@ cfg-if = "1"
 cortex-m = "0.7.7"
 cortex-m-rt = "0.7"
 
-embedded-hal = { version = "1.0.0-rc.1" }
+embedded-hal = { version = "1.0.0" }
 critical-section = "1.1.2"
 fugit = "0.3.7"
-rp2040-async-i2c = { git = "https://github.com/ithinuel/rp2040-async-i2c", features = ["pio"] }
+rp2040-async-i2c = { git = "https://github.com/ithinuel/rp2040-async-i2c" }
 panic-probe = { version = "0.3.1", features = ["print-defmt"] }
 
 arrayvec = { version = "0.7.4", default-features = false }
@@ -38,10 +38,11 @@ futures = { version = "0.3.29", default-features = false, features = [
 pimoroni-pico-explorer = { version = "0.7.0" }
 rp-pico = { version = "0.8.0" }
 sparkfun-pro-micro-rp2040 = { version = "0.7.0" }
-
+rp2040-hal = { version = "0.9.2", features = ["i2c-write-iter"] }
 
 [features]
 promicro = []
+promicro-pio = []
 pico-explorer = []
 pico-explorer-pio = []
 pico-explorer-minimal = []

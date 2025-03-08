@@ -48,6 +48,7 @@ pico-explorer-pio = []
 pico-explorer-minimal = []
 rpi-pico = []
 embedded-graphics = ["dep:embedded-graphics", "embedded-hal", "itertools"]
+defmt = []
 
 [[example]]
 name = "embedded-graphics"

@@ -3,13 +3,8 @@ resolver = "2"
 members = ["adafruit-featherwing-oled128x64", "sh1107"]
 
 [profile.release]
-debug = 1
+debug = 2
 lto = false
 codegen-units = 1
 panic = "abort"
-opt-level = 2
-
-[patch.crates-io]
-rp2040-hal = { path = "../rp-hal/rp2040-hal" }
-[patch.'https://github.com/ithinuel/rp2040-async-i2C']
-rp2040-async-i2c = { path = "../rp2040-async-i2c" }
+opt-level = "s"

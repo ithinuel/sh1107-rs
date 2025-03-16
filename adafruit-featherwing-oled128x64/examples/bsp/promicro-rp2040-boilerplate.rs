@@ -1,4 +1,3 @@
-use critical_section::Mutex;
 use fugit::RateExtU32;
 use panic_probe as _;
 use sparkfun_pro_micro_rp2040::{hal, Pins};

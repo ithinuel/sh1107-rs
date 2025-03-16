@@ -59,9 +59,9 @@ async fn demo(
 fn main() -> ! {
     let (timer, i2c) = bsp::init();
 
-    let runtime = nostd_async::Runtime::new();
-    let mut task = nostd_async::Task::new(demo(&timer, i2c));
-    let handle = task.spawn(&runtime);
-    handle.join().expect("Something went wrong");
+    let mut task = (async || {
+        demo(&timer, i2c).await.expect("Woops");
+    })();
+    tinywake::run_all([&mut task]);
     unreachable!()
 }

@@ -39,6 +39,7 @@ async fn demo(
         Display::new(i2c_bus).await.map_err(|(_, e)| e)
     })
     .await?;
+    defmt::info!("Hello");
 
     timed("Write Frame", timer, async {
         display.set_start_line(0).await?;
@@ -65,9 +66,9 @@ async fn demo(
 fn main() -> ! {
     let (timer, i2c) = bsp::init();
 
-    let runtime = nostd_async::Runtime::new();
-    let mut task = nostd_async::Task::new(demo(&timer, i2c));
-    let handle = task.spawn(&runtime);
-    handle.join().expect("Something went wrong");
+    let mut task = (async || {
+        demo(&timer, i2c).await.expect("Woops");
+    })();
+    tinywake::run_all([&mut task]);
     unreachable!()
 }
